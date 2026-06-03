@@ -819,7 +819,7 @@
         <span class="icon">◈</span> Scoreboard
       </div>
       <div class="nav-item" data-page="input">
-        <span class="icon">⊕</span> Log Today
+        <span class="icon">⊕</span> Log Yesterday
       </div>
       <div class="nav-section-label">Campaigns</div>
       <div class="nav-item" data-page="campaigns">
@@ -861,7 +861,7 @@
           <div class="page-title">Good <em id="greeting-time">morning</em>, Tristan</div>
           <div class="page-subtitle" id="scoreboard-subtitle">Here's where you stand today.</div>
         </div>
-        <button class="btn btn-primary" onclick="navigate('input')">⊕ Log Today's Numbers</button>
+        <button class="btn btn-primary" onclick="navigate('input')">⊕ Log Yesterday's Numbers</button>
       </div>
 
       <!-- Revenue Target -->
@@ -992,8 +992,8 @@
     <div class="page" id="page-input">
       <div class="page-header">
         <div>
-          <div class="page-title">Log <em>Today's</em> Numbers</div>
-          <div class="page-subtitle" id="input-date-label">Takes 2 minutes. Makes the whole day feel in control.</div>
+          <div class="page-title">Log <em>Yesterday's</em> Numbers</div>
+          <div class="page-subtitle" id="input-date-label">Your morning review. 2 minutes to feel in control.</div>
         </div>
       </div>
 
@@ -1073,12 +1073,12 @@
             <div class="card-title">Today's Note</div>
             <div class="form-group">
               <label class="form-label">One thing worth remembering about today</label>
-              <textarea class="form-input" id="in-note" placeholder="e.g. Summer campaign email went out — good open rate early"></textarea>
+              <textarea class="form-input" id="in-note" placeholder="e.g. Yesterday's campaign email had strong open rate — follow up today"></textarea>
             </div>
           </div>
 
           <button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;" onclick="saveDay()">
-            ✓ Save Today's Entry
+            ✓ Save Yesterday's Entry
           </button>
         </div>
       </div>
@@ -1316,6 +1316,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
 // =====================
 function initDate() {
   const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const h = now.getHours();
@@ -1324,7 +1326,7 @@ function initDate() {
   document.getElementById('greeting-time').textContent = greeting;
   document.getElementById('sidebar-day').textContent = days[now.getDay()];
   document.getElementById('sidebar-date').textContent = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-  document.getElementById('input-date-label').textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} — takes 2 minutes. Makes the whole day feel in control.`;
+  document.getElementById('input-date-label').textContent = `Reviewing ${days[yesterday.getDay()]}, ${yesterday.getDate()} ${months[yesterday.getMonth()]} — your morning review.`;
 
   const sub = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
   document.getElementById('scoreboard-subtitle').textContent = sub;
@@ -1489,7 +1491,9 @@ function refreshScoreboard() {
 // =====================
 function saveDay() {
   const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const dateStr = yesterday.toISOString().split('T')[0];
 
   // Remove existing entry for today if re-logging
   state.days = state.days.filter(d => d.date !== dateStr);
@@ -1514,7 +1518,7 @@ function saveDay() {
 
   state.days.push(entry);
   saveState();
-  showToast('Today logged. Scoreboard updated.');
+  showToast('Yesterday logged. Scoreboard updated.');
 
   // Clear inputs
   ['in-ppc','in-meta','in-organic','in-other-leads','in-ppc-spend','in-meta-spend','in-other-spend',
