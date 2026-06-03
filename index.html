@@ -961,29 +961,13 @@
         </div>
       </div>
 
-      <!-- Pipeline Pulse -->
+      <!-- Pipeline Pulse — campaign driven -->
       <div class="card">
         <div class="card-title">Pipeline Pulse</div>
-        <div class="grid-4" id="pipeline-grid">
-          <div class="stat-tile">
-            <div class="label">Waitlist</div>
-            <div class="value" id="pl-waitlist">—</div>
+        <div id="scoreboard-pipeline-pulse">
+          <div class="empty-state" style="padding:20px;">
+            <p>No campaigns set up yet. <span style="color:var(--accent);cursor:pointer;" onclick="navigate('campaigns')">Add a campaign →</span></p>
           </div>
-          <div class="stat-tile">
-            <div class="label">Form Submissions</div>
-            <div class="value" id="pl-forms">—</div>
-          </div>
-          <div class="stat-tile">
-            <div class="label">Emails Sent</div>
-            <div class="value" id="pl-emails">—</div>
-          </div>
-          <div class="stat-tile">
-            <div class="label">Other Pipeline</div>
-            <div class="value" id="pl-other">—</div>
-          </div>
-        </div>
-        <div class="mt-8" id="pl-notes-display" style="display:none;">
-          <div style="font-size:12px;color:var(--text-muted);padding:10px 0;border-top:1px solid var(--border);margin-top:8px;" id="pl-notes-text"></div>
         </div>
       </div>
     </div>
@@ -1047,32 +1031,25 @@
           <div class="card">
             <div class="card-title">Sales</div>
             <div class="form-group">
-              <label class="form-label">Number of Sales Today</label>
+              <label class="form-label">Number of Sales Yesterday</label>
               <input class="form-input" type="number" id="in-sales-count" placeholder="0" min="0">
             </div>
             <div class="form-group">
-              <label class="form-label">Total Sales Value £ (today)</label>
+              <label class="form-label">Total Sales Value £ (yesterday)</label>
               <input class="form-input" type="number" id="in-sales-value" placeholder="0.00" step="0.01">
             </div>
           </div>
 
           <div class="card">
-            <div class="card-title">Pipeline Pulse</div>
-            <div class="form-group">
-              <label class="form-label">Waitlist Count</label>
-              <input class="form-input" type="number" id="in-waitlist" placeholder="0" min="0">
+            <div class="card-title">Pipeline Pulse — by Campaign</div>
+            <div id="input-pipeline-campaigns">
+              <div class="empty-state" style="padding:20px;">
+                <p>No active campaigns. <span style="color:var(--accent);cursor:pointer;" onclick="navigate('campaigns')">Set up campaigns →</span></p>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Form Submissions Today</label>
-              <input class="form-input" type="number" id="in-forms" placeholder="0" min="0">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Emails Sent Today</label>
-              <input class="form-input" type="number" id="in-emails" placeholder="0" min="0">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Other Pipeline Note</label>
-              <input class="form-input" type="text" id="in-other-pipeline" placeholder="e.g. 3 discovery calls booked">
+            <div class="form-group mt-16">
+              <label class="form-label">General Pipeline Note</label>
+              <input class="form-input" type="text" id="in-other-pipeline" placeholder="e.g. 3 discovery calls booked, email reply rate strong">
             </div>
           </div>
 
@@ -1239,6 +1216,21 @@
         <input class="form-input" type="date" id="cm-end">
       </div>
     </div>
+    <div class="section-divider">Pipeline Dates</div>
+    <div class="grid-3">
+      <div class="form-group">
+        <label class="form-label">Waitlist Opens</label>
+        <input class="form-input" type="date" id="cm-waitlist-start">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Deal Goes Live</label>
+        <input class="form-input" type="date" id="cm-deal-start">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Deal Ends</label>
+        <input class="form-input" type="date" id="cm-deal-end">
+      </div>
+    </div>
     <div class="form-group">
       <label class="form-label">Revenue Target £</label>
       <input class="form-input" type="number" id="cm-target" placeholder="0">
@@ -1308,6 +1300,7 @@ function navigate(page) {
   document.getElementById('page-' + page).classList.add('active');
   document.querySelector('[data-page="' + page + '"]').classList.add('active');
   if (page === 'scoreboard') refreshScoreboard();
+  if (page === 'input') renderInputPipeline();
   if (page === 'campaigns') renderCampaigns();
   if (page === 'trends' && !document.getElementById('trend-display').querySelector('.trend-headline')) fetchTrend();
   if (page === 'history') renderHistory();
@@ -1369,7 +1362,7 @@ function calcMTD() {
     revenue: 0, sales: 0,
     ppcLeads: 0, metaLeads: 0, organicLeads: 0, otherLeads: 0,
     ppcSpend: 0, metaSpend: 0, otherSpend: 0,
-    waitlist: 0, forms: 0, emails: 0
+    waitlist: 0, forms: 0, emails: 0 // legacy — now per-campaign
   };
   days.forEach(d => {
     totals.revenue += d.salesValue || 0;
@@ -1499,13 +1492,8 @@ function refreshScoreboard() {
     </div>`;
   }).join('');
 
-  // Pipeline pulse
-  document.getElementById('pl-waitlist').textContent = mtd.waitlist || '—';
-  document.getElementById('pl-forms').textContent = mtd.forms || '—';
-  document.getElementById('pl-emails').textContent = mtd.emails || '—';
-  const plOther = document.getElementById('pl-other');
-  plOther.textContent = mtd.pipelineNote || '—';
-  plOther.style.fontSize = mtd.pipelineNote && mtd.pipelineNote.length > 8 ? '11px' : '22px';
+  // Pipeline pulse — campaign driven
+  renderScoreboardPipeline();
 }
 
 // =====================
@@ -1532,9 +1520,21 @@ function saveDay() {
   // Remove existing entry for today if re-logging
   state.days = state.days.filter(d => d.date !== dateStr);
 
+  // Collect per-campaign pipeline data
+  const pipeline = {};
+  const activeCampaigns = state.campaigns.filter(c => c.status !== 'complete');
+  activeCampaigns.forEach(c => {
+    pipeline[c.id] = {
+      waitlist: parseInt(document.getElementById(`pp-waitlist-${c.id}`)?.value) || 0,
+      forms: parseInt(document.getElementById(`pp-forms-${c.id}`)?.value) || 0,
+      emails: parseInt(document.getElementById(`pp-emails-${c.id}`)?.value) || 0,
+    };
+  });
+
   const entry = {
     date: dateStr,
     isWeekend: isMonday,
+    pipeline,
     ppcLeads: parseFloat(document.getElementById('in-ppc').value) || 0,
     metaLeads: parseFloat(document.getElementById('in-meta').value) || 0,
     organicLeads: parseFloat(document.getElementById('in-organic').value) || 0,
@@ -1544,9 +1544,6 @@ function saveDay() {
     otherSpend: parseFloat(document.getElementById('in-other-spend').value) || 0,
     salesCount: parseInt(document.getElementById('in-sales-count').value) || 0,
     salesValue: parseFloat(document.getElementById('in-sales-value').value) || 0,
-    waitlist: parseInt(document.getElementById('in-waitlist').value) || 0,
-    forms: parseInt(document.getElementById('in-forms').value) || 0,
-    emails: parseInt(document.getElementById('in-emails').value) || 0,
     otherPipeline: document.getElementById('in-other-pipeline').value || '',
     note: document.getElementById('in-note').value || ''
   };
@@ -1557,7 +1554,7 @@ function saveDay() {
 
   // Clear inputs
   ['in-ppc','in-meta','in-organic','in-other-leads','in-ppc-spend','in-meta-spend','in-other-spend',
-   'in-sales-count','in-sales-value','in-waitlist','in-forms','in-emails','in-other-pipeline','in-note']
+   'in-sales-count','in-sales-value','in-other-pipeline','in-note']
     .forEach(id => document.getElementById(id).value = '');
 
   navigate('scoreboard');
@@ -1576,13 +1573,16 @@ function openCampaignModal(id) {
     document.getElementById('cm-goal').value = c.goal || '';
     document.getElementById('cm-start').value = c.start || '';
     document.getElementById('cm-end').value = c.end || '';
+    document.getElementById('cm-waitlist-start').value = c.waitlistStart || '';
+    document.getElementById('cm-deal-start').value = c.dealStart || '';
+    document.getElementById('cm-deal-end').value = c.dealEnd || '';
     document.getElementById('cm-target').value = c.target || '';
     document.getElementById('cm-status').value = c.status || 'pending';
     document.getElementById('cm-notes').value = c.notes || '';
     document.getElementById('cm-update').value = '';
   } else {
     document.getElementById('modal-title').textContent = 'New Campaign';
-    ['cm-name','cm-goal','cm-start','cm-end','cm-target','cm-notes','cm-update'].forEach(id => document.getElementById(id).value = '');
+    ['cm-name','cm-goal','cm-start','cm-end','cm-waitlist-start','cm-deal-start','cm-deal-end','cm-target','cm-notes','cm-update'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('cm-status').value = 'pending';
   }
   modal.classList.add('open');
@@ -1607,6 +1607,9 @@ function saveCampaign() {
       name, goal: document.getElementById('cm-goal').value,
       start: document.getElementById('cm-start').value,
       end: document.getElementById('cm-end').value,
+      waitlistStart: document.getElementById('cm-waitlist-start').value,
+      dealStart: document.getElementById('cm-deal-start').value,
+      dealEnd: document.getElementById('cm-deal-end').value,
       target: parseFloat(document.getElementById('cm-target').value) || 0,
       status: document.getElementById('cm-status').value,
       notes: document.getElementById('cm-notes').value,
@@ -1621,6 +1624,9 @@ function saveCampaign() {
       name, goal: document.getElementById('cm-goal').value,
       start: document.getElementById('cm-start').value,
       end: document.getElementById('cm-end').value,
+      waitlistStart: document.getElementById('cm-waitlist-start').value,
+      dealStart: document.getElementById('cm-deal-start').value,
+      dealEnd: document.getElementById('cm-deal-end').value,
       target: parseFloat(document.getElementById('cm-target').value) || 0,
       status: document.getElementById('cm-status').value,
       notes: document.getElementById('cm-notes').value,
@@ -1633,6 +1639,8 @@ function saveCampaign() {
   saveState();
   closeCampaignModal();
   renderCampaigns();
+  renderInputPipeline();
+  renderScoreboardPipeline();
   showToast('Campaign saved.');
 }
 
@@ -1781,8 +1789,122 @@ function renderTrendHistory() {
 }
 
 // =====================
-// HISTORY
+// CAMPAIGN PHASE HELPER
 // =====================
+function getCampaignPhase(c) {
+  const today = new Date().toISOString().split('T')[0];
+  if (c.dealEnd && today > c.dealEnd) return 'ended';
+  if (c.dealStart && today >= c.dealStart) return 'deal-live';
+  if (c.waitlistStart && today >= c.waitlistStart) return 'waitlist-open';
+  return 'upcoming';
+}
+
+function phaseLabel(phase) {
+  if (phase === 'ended') return { text: 'Deal Ended', color: 'var(--text-muted)', bg: 'var(--border)' };
+  if (phase === 'deal-live') return { text: '🔥 Deal Live', color: 'var(--green)', bg: 'var(--green-dim)' };
+  if (phase === 'waitlist-open') return { text: '📋 Waitlist Open', color: 'var(--accent)', bg: 'var(--accent-dim)' };
+  return { text: 'Upcoming', color: 'var(--text-muted)', bg: 'var(--border)' };
+}
+
+// =====================
+// RENDER INPUT PIPELINE
+// =====================
+function renderInputPipeline() {
+  const wrap = document.getElementById('input-pipeline-campaigns');
+  const active = state.campaigns.filter(c => c.status !== 'complete');
+  if (active.length === 0) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:16px 0;"><p>No active campaigns. <span style="color:var(--accent);cursor:pointer;" onclick="navigate('campaigns')">Set up campaigns →</span></p></div>`;
+    return;
+  }
+  wrap.innerHTML = active.map(c => {
+    const phase = getCampaignPhase(c);
+    const pl = phaseLabel(phase);
+    return `
+      <div style="border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:13px;font-weight:500;color:var(--text);">${c.name}</div>
+          <span style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.06em;padding:3px 8px;border-radius:4px;background:${pl.bg};color:${pl.color};">${pl.text}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Waitlist Count</label>
+            <input class="form-input" type="number" id="pp-waitlist-${c.id}" placeholder="0" min="0">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Form Submissions</label>
+            <input class="form-input" type="number" id="pp-forms-${c.id}" placeholder="0" min="0">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Emails Sent</label>
+            <input class="form-input" type="number" id="pp-emails-${c.id}" placeholder="0" min="0">
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// =====================
+// RENDER SCOREBOARD PIPELINE
+// =====================
+function renderScoreboardPipeline() {
+  const wrap = document.getElementById('scoreboard-pipeline-pulse');
+  const active = state.campaigns.filter(c => c.status !== 'complete');
+  if (active.length === 0) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:20px;"><p>No campaigns set up yet. <span style="color:var(--accent);cursor:pointer;" onclick="navigate('campaigns')">Add a campaign →</span></p></div>`;
+    return;
+  }
+
+  // Get latest pipeline data per campaign from most recent day entry
+  const latestDay = getMTD().length > 0 ? getMTD()[getMTD().length - 1] : null;
+  const pipelineData = latestDay && latestDay.pipeline ? latestDay.pipeline : {};
+
+  wrap.innerHTML = active.map(c => {
+    const phase = getCampaignPhase(c);
+    const pl = phaseLabel(phase);
+    const pd = pipelineData[c.id] || {};
+    const waitlist = pd.waitlist !== undefined ? pd.waitlist : '—';
+    const forms = pd.forms !== undefined ? pd.forms : '—';
+    const emails = pd.emails !== undefined ? pd.emails : '—';
+
+    // Date info
+    const dateInfo = [];
+    if (c.waitlistStart) dateInfo.push(`Waitlist: ${c.waitlistStart}`);
+    if (c.dealStart) dateInfo.push(`Deal live: ${c.dealStart}`);
+    if (c.dealEnd) dateInfo.push(`Ends: ${c.dealEnd}`);
+
+    return `
+      <div style="border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);">${c.name}</div>
+            ${dateInfo.length ? `<div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:2px;">${dateInfo.join(' · ')}</div>` : ''}
+          </div>
+          <span style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.06em;padding:3px 8px;border-radius:4px;background:${pl.bg};color:${pl.color};">${pl.text}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+          <div class="stat-tile" style="padding:10px 12px;">
+            <div class="label">Waitlist</div>
+            <div class="value" style="font-size:18px;">${waitlist}</div>
+          </div>
+          <div class="stat-tile" style="padding:10px 12px;">
+            <div class="label">Form Subs</div>
+            <div class="value" style="font-size:18px;">${forms}</div>
+          </div>
+          <div class="stat-tile" style="padding:10px 12px;">
+            <div class="label">Emails Sent</div>
+            <div class="value" style="font-size:18px;">${emails}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // General note
+  if (latestDay && latestDay.otherPipeline) {
+    wrap.innerHTML += `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;border-top:1px solid var(--border);margin-top:4px;">${latestDay.otherPipeline}</div>`;
+  }
+}
+
+
 function renderHistory() {
   const display = document.getElementById('history-display');
   const sorted = [...state.days].sort((a,b) => b.date.localeCompare(a.date));
