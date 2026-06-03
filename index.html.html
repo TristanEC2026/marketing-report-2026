@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketing OS — Event Crowd</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --surface2: #1e2026;
+    --border: #2a2d35;
+    --border-light: #333740;
+    --text: #e8eaed;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --accent: #f0b429;
+    --accent-dim: rgba(240,180,41,0.12);
+    --green: #34d399;
+    --green-dim: rgba(52,211,153,0.1);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.1);
+    --blue: #60a5fa;
+    --blue-dim: rgba(96,165,250,0.1);
+    --font-serif: 'Instrument Serif', Georgia, serif;
+    --font-mono: 'DM Mono', monospace;
+    --font-sans: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* LAYOUT */
+  .app { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 220px;
+    min-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-logo .wordmark {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .sidebar-logo .sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .sidebar-date {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-date .day {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .sidebar-date .date-full {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 12px 0;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 400;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+
+  .nav-item:hover { color: var(--text-dim); background: rgba(255,255,255,0.02); }
+  .nav-item.active { color: var(--text); border-left-color: var(--accent); background: var(--accent-dim); }
+
+  .nav-item .icon { width: 16px; text-align: center; font-size: 14px; }
+
+  .nav-section-label {
+    padding: 16px 20px 6px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--border-light);
+  }
+
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .month-target-mini {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  .month-target-mini .label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .month-target-mini .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  .month-target-mini .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 0.5s ease;
+  }
+
+  .month-target-mini .values {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+
+  .month-target-mini .current { color: var(--accent); }
+  .month-target-mini .target { color: var(--text-muted); }
+
+  /* MAIN */
+  .main {
+    margin-left: 220px;
+    flex: 1;
+    padding: 32px 40px;
+    max-width: 1200px;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* PAGE HEADER */
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-title {
+    font-family: var(--font-serif);
+    font-size: 28px;
+    color: var(--text);
+    font-weight: 400;
+    letter-spacing: -0.5px;
+  }
+
+  .page-title em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  /* STAT TILES */
+  .stat-tile {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .stat-tile .label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-tile .value {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-tile .delta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    margin-top: 6px;
+  }
+
+  .delta-up { color: var(--green); }
+  .delta-down { color: var(--red); }
+  .delta-neutral { color: var(--text-muted); }
+
+  /* FORM ELEMENTS */
+  .form-group { margin-bottom: 14px; }
+
+  .form-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-input:focus {
+    border-color: var(--accent);
+  }
+
+  .form-input::placeholder { color: var(--border-light); }
+
+  textarea.form-input {
+    resize: vertical;
+    min-height: 72px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0e0f11;
+  }
+
+  .btn-primary:hover { background: #f7c948; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { color: var(--text); border-color: var(--border-light); }
+
+  .btn-danger {
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(248,113,113,0.2);
+  }
+
+  /* PROGRESS BAR */
+  .progress-wrap { margin: 10px 0; }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .progress-bar-full {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill-full {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+  .fill-green { background: var(--green); }
+  .fill-amber { background: var(--accent); }
+  .fill-red { background: var(--red); }
+  .fill-blue { background: var(--blue); }
+
+  /* PACE INDICATOR */
+  .pace-banner {
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .pace-banner.on-track { background: var(--green-dim); border: 1px solid rgba(52,211,153,0.2); }
+  .pace-banner.behind { background: var(--red-dim); border: 1px solid rgba(248,113,113,0.2); }
+  .pace-banner.ahead { background: var(--accent-dim); border: 1px solid rgba(240,180,41,0.2); }
+  .pace-banner .pace-icon { font-size: 20px; }
+  .pace-banner .pace-text { font-size: 13px; }
+  .pace-banner .pace-text strong { display: block; font-size: 14px; }
+
+  /* CHANNEL ROW */
+  .channel-row {
+    display: grid;
+    grid-template-columns: 120px repeat(4, 1fr);
+    gap: 0;
+    align-items: center;
+  }
+
+  .channel-row.header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+
+  .channel-row .col {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 7px 0;
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  .channel-row .col:first-child { text-align: left; }
+
+  .channel-row.data-row .col { color: var(--text); }
+  .channel-row.data-row .col:first-child { color: var(--text-dim); font-size: 12px; }
+
+  .channel-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  .tag-ppc { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+  .tag-meta { background: rgba(139,92,246,0.1); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
+  .tag-organic { background: var(--green-dim); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+  .tag-other { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(240,180,41,0.2); }
+
+  /* CAMPAIGN CARDS */
+  .campaign-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .campaign-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+
+  .campaign-card.status-active::before { background: var(--green); }
+  .campaign-card.status-pending::before { background: var(--accent); }
+  .campaign-card.status-complete::before { background: var(--text-muted); }
+
+  .campaign-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .campaign-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .campaign-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .campaign-status-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .badge-active { background: var(--green-dim); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+  .badge-pending { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(240,180,41,0.2); }
+  .badge-complete { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
+
+  .campaign-notes {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* TREND CARD */
+  .trend-content {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+
+  .trend-content .trend-headline {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    color: var(--text);
+    margin-bottom: 10px;
+    line-height: 1.3;
+    letter-spacing: -0.2px;
+  }
+
+  .trend-bullets { list-style: none; margin: 12px 0; }
+  .trend-bullets li {
+    padding: 6px 0 6px 16px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .trend-bullets li:last-child { border-bottom: none; }
+  .trend-bullets li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: var(--font-mono);
+  }
+
+  .ec-angle {
+    background: var(--accent-dim);
+    border: 1px solid rgba(240,180,41,0.15);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 12px;
+  }
+
+  .ec-angle .ec-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .ec-angle p {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .trend-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 20px 0;
+  }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* PIPELINE */
+  .pipeline-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .pipeline-item:last-child { border-bottom: none; }
+  .pipeline-item .pi-label { font-size: 13px; color: var(--text-dim); }
+  .pipeline-item .pi-value {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 32px;
+    width: 520px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-title {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    margin-bottom: 20px;
+    letter-spacing: -0.3px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-end;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 13px;
+    color: var(--text);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast .toast-icon { color: var(--green); font-size: 16px; }
+
+  /* TABS */
+  .tab-nav {
+    display: flex;
+    gap: 2px;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 3px;
+    margin-bottom: 20px;
+    width: fit-content;
+  }
+  .tab-btn {
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    transition: all 0.15s;
+  }
+  .tab-btn.active { background: var(--surface); color: var(--text); }
+
+  /* DIVIDER */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13px; line-height: 1.6; }
+
+  /* HISTORY TABLE */
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .history-table th {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .history-table td {
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .history-table tr:last-child td { border-bottom: none; }
+  .history-table tr:hover td { background: var(--surface2); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* UTILITIES */
+  .text-green { color: var(--green); }
+  .text-red { color: var(--red); }
+  .text-amber { color: var(--accent); }
+  .text-muted { color: var(--text-muted); }
+  .text-mono { font-family: var(--font-mono); }
+  .mt-8 { margin-top: 8px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .flex { display: flex; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  .gap-8 { gap: 8px; }
+  .gap-12 { gap: 12px; }
+
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0 16px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--border-light);
+  }
+  .section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* GREETING */
+  .greeting-banner {
+    background: linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .greeting-text {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    letter-spacing: -0.3px;
+  }
+  .greeting-text em { font-style: italic; color: var(--accent); }
+  .greeting-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  .api-key-section {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .api-key-section p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+  .api-key-row {
+    display: flex;
+    gap: 8px;
+  }
+  .api-key-row .form-input { flex: 1; }
+
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="wordmark">Marketing OS</div>
+      <div class="sub">Event Crowd</div>
+    </div>
+    <div class="sidebar-date">
+      <div class="day" id="sidebar-day"></div>
+      <div class="date-full" id="sidebar-date"></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Daily</div>
+      <div class="nav-item active" data-page="scoreboard">
+        <span class="icon">◈</span> Scoreboard
+      </div>
+      <div class="nav-item" data-page="input">
+        <span class="icon">⊕</span> Log Today
+      </div>
+      <div class="nav-section-label">Campaigns</div>
+      <div class="nav-item" data-page="campaigns">
+        <span class="icon">◎</span> Campaigns
+      </div>
+      <div class="nav-section-label">Intel</div>
+      <div class="nav-item" data-page="trends">
+        <span class="icon">◐</span> Trend Brief
+      </div>
+      <div class="nav-section-label">Records</div>
+      <div class="nav-item" data-page="history">
+        <span class="icon">≡</span> History
+      </div>
+      <div class="nav-item" data-page="settings">
+        <span class="icon">⚙</span> Settings
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="month-target-mini">
+        <div class="label">Monthly Target</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="sidebar-progress" style="width:0%"></div>
+        </div>
+        <div class="values">
+          <span class="current" id="sidebar-current">£0</span>
+          <span class="target">£81k</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ===== SCOREBOARD ===== -->
+    <div class="page active" id="page-scoreboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Good <em id="greeting-time">morning</em>, Tristan</div>
+          <div class="page-subtitle" id="scoreboard-subtitle">Here's where you stand today.</div>
+        </div>
+        <button class="btn btn-primary" onclick="navigate('input')">⊕ Log Today's Numbers</button>
+      </div>
+
+      <!-- Revenue Target -->
+      <div class="card">
+        <div class="card-title">Revenue — Month to Date</div>
+        <div class="grid-4">
+          <div class="stat-tile">
+            <div class="label">MTD Revenue</div>
+            <div class="value" id="stat-mtd-revenue">£0</div>
+            <div class="delta delta-neutral" id="stat-mtd-pct">—% of target</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Target</div>
+            <div class="value">£81k</div>
+            <div class="delta delta-neutral" id="stat-days-left">— days left</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Daily Run Rate Needed</div>
+            <div class="value" id="stat-daily-needed">—</div>
+            <div class="delta delta-neutral">to hit target</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Projected Month End</div>
+            <div class="value" id="stat-projected">—</div>
+            <div class="delta" id="stat-proj-delta">—</div>
+          </div>
+        </div>
+        <div class="progress-wrap mt-16">
+          <div class="progress-label">
+            <span>£0</span>
+            <span id="prog-label-mid">£40.5k</span>
+            <span>£81k</span>
+          </div>
+          <div class="progress-bar-full">
+            <div class="progress-fill-full fill-amber" id="revenue-progress" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="pace-banner on-track" id="pace-banner">
+          <span class="pace-icon">📊</span>
+          <div class="pace-text">
+            <strong id="pace-headline">No data logged yet</strong>
+            <span id="pace-detail">Log your first day to see your pace.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lead Targets -->
+      <div class="card">
+        <div class="card-title">Leads — Month to Date</div>
+        <div class="grid-3">
+          <div>
+            <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px;">PPC Leads</div>
+            <div class="progress-wrap">
+              <div class="progress-label">
+                <span class="text-mono" id="ppc-leads-val">0</span>
+                <span class="text-muted">Target: 600</span>
+              </div>
+              <div class="progress-bar-full">
+                <div class="progress-fill-full fill-blue" id="ppc-leads-bar" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px;">Meta Leads</div>
+            <div class="progress-wrap">
+              <div class="progress-label">
+                <span class="text-mono" id="meta-leads-val">0</span>
+                <span class="text-muted">No target set</span>
+              </div>
+              <div class="progress-bar-full">
+                <div class="progress-fill-full fill-amber" id="meta-leads-bar" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px;">Organic Leads</div>
+            <div class="progress-wrap">
+              <div class="progress-label">
+                <span class="text-mono" id="organic-leads-val">0</span>
+                <span class="text-muted">Target: 150</span>
+              </div>
+              <div class="progress-bar-full">
+                <div class="progress-fill-full fill-green" id="organic-leads-bar" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-16">
+          <div class="channel-row header">
+            <div class="col">Channel</div>
+            <div class="col">Leads MTD</div>
+            <div class="col">CPL</div>
+            <div class="col">Sales MTD</div>
+            <div class="col">Conv %</div>
+          </div>
+          <div id="channel-table-body"></div>
+        </div>
+      </div>
+
+      <!-- Pipeline Pulse -->
+      <div class="card">
+        <div class="card-title">Pipeline Pulse</div>
+        <div class="grid-4" id="pipeline-grid">
+          <div class="stat-tile">
+            <div class="label">Waitlist</div>
+            <div class="value" id="pl-waitlist">—</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Form Submissions</div>
+            <div class="value" id="pl-forms">—</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Emails Sent</div>
+            <div class="value" id="pl-emails">—</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Other Pipeline</div>
+            <div class="value" id="pl-other">—</div>
+          </div>
+        </div>
+        <div class="mt-8" id="pl-notes-display" style="display:none;">
+          <div style="font-size:12px;color:var(--text-muted);padding:10px 0;border-top:1px solid var(--border);margin-top:8px;" id="pl-notes-text"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== INPUT ===== -->
+    <div class="page" id="page-input">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Log <em>Today's</em> Numbers</div>
+          <div class="page-subtitle" id="input-date-label">Takes 2 minutes. Makes the whole day feel in control.</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="card-title">Leads by Channel</div>
+            <div class="form-group">
+              <label class="form-label">PPC Leads (Google)</label>
+              <input class="form-input" type="number" id="in-ppc" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Meta Leads (FB/IG)</label>
+              <input class="form-input" type="number" id="in-meta" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Organic Leads</label>
+              <input class="form-input" type="number" id="in-organic" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Other Leads (TikTok / REED / Partners)</label>
+              <input class="form-input" type="number" id="in-other-leads" placeholder="0" min="0">
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Ad Spend (from George)</div>
+            <div class="form-group">
+              <label class="form-label">PPC Spend £</label>
+              <input class="form-input" type="number" id="in-ppc-spend" placeholder="0.00" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Meta Spend £</label>
+              <input class="form-input" type="number" id="in-meta-spend" placeholder="0.00" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Other Spend £</label>
+              <input class="form-input" type="number" id="in-other-spend" placeholder="0.00" step="0.01">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-title">Sales</div>
+            <div class="form-group">
+              <label class="form-label">Number of Sales Today</label>
+              <input class="form-input" type="number" id="in-sales-count" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Total Sales Value £ (today)</label>
+              <input class="form-input" type="number" id="in-sales-value" placeholder="0.00" step="0.01">
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Pipeline Pulse</div>
+            <div class="form-group">
+              <label class="form-label">Waitlist Count</label>
+              <input class="form-input" type="number" id="in-waitlist" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Form Submissions Today</label>
+              <input class="form-input" type="number" id="in-forms" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Emails Sent Today</label>
+              <input class="form-input" type="number" id="in-emails" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Other Pipeline Note</label>
+              <input class="form-input" type="text" id="in-other-pipeline" placeholder="e.g. 3 discovery calls booked">
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Today's Note</div>
+            <div class="form-group">
+              <label class="form-label">One thing worth remembering about today</label>
+              <textarea class="form-input" id="in-note" placeholder="e.g. Summer campaign email went out — good open rate early"></textarea>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;" onclick="saveDay()">
+            ✓ Save Today's Entry
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CAMPAIGNS ===== -->
+    <div class="page" id="page-campaigns">
+      <div class="page-header">
+        <div>
+          <div class="page-title"><em>Campaign</em> Tracker</div>
+          <div class="page-subtitle">Set up at the start of each month. Update status daily.</div>
+        </div>
+        <button class="btn btn-primary" onclick="openCampaignModal()">⊕ Add Campaign</button>
+      </div>
+
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="filterCampaigns('all', this)">All</button>
+        <button class="tab-btn" onclick="filterCampaigns('active', this)">Active</button>
+        <button class="tab-btn" onclick="filterCampaigns('pending', this)">Upcoming</button>
+        <button class="tab-btn" onclick="filterCampaigns('complete', this)">Complete</button>
+      </div>
+
+      <div id="campaigns-list">
+        <div class="empty-state">
+          <div class="empty-icon">◎</div>
+          <p>No campaigns yet.<br>Add your first campaign for this month.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TRENDS ===== -->
+    <div class="page" id="page-trends">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Trend <em>Brief</em></div>
+          <div class="page-subtitle">What's moving in marketing today — and what it means for Event Crowd.</div>
+        </div>
+        <button class="btn btn-ghost" onclick="fetchTrend()">↻ Refresh Brief</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Today's Brief</div>
+        <div id="trend-display">
+          <div class="trend-loading">
+            <div class="spinner"></div>
+            Generating your brief — just a moment...
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-16" id="trend-history-card" style="display:none;">
+        <div class="card-title">Previous Briefs</div>
+        <div id="trend-history-list"></div>
+      </div>
+    </div>
+
+    <!-- ===== HISTORY ===== -->
+    <div class="page" id="page-history">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Entry <em>History</em></div>
+          <div class="page-subtitle">Every day you've logged. Your record of momentum.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">All Logged Days</div>
+        <div id="history-display">
+          <div class="empty-state">
+            <div class="empty-icon">≡</div>
+            <p>No entries yet. Start logging to build your history.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SETTINGS ===== -->
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <div>
+          <div class="page-title"><em>Settings</em></div>
+          <div class="page-subtitle">Targets, API key, and preferences.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Monthly Targets</div>
+        <div class="grid-3">
+          <div class="form-group">
+            <label class="form-label">Revenue Target £</label>
+            <input class="form-input" type="number" id="s-revenue-target" value="81000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">PPC Lead Target</label>
+            <input class="form-input" type="number" id="s-ppc-target" value="600">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Organic Lead Target</label>
+            <input class="form-input" type="number" id="s-organic-target" value="150">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">Save Targets</button>
+      </div>
+
+      <div class="card mt-16">
+        <div class="card-title">AI Trend Brief — Anthropic API Key</div>
+        <div class="api-key-section">
+          <p>The Trend Brief uses the Claude API to fetch a fresh marketing intelligence briefing each morning. You'll need a free Anthropic API key. <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);">Get one here →</a></p>
+          <div class="api-key-row">
+            <input class="form-input" type="password" id="s-api-key" placeholder="sk-ant-...">
+            <button class="btn btn-primary" onclick="saveApiKey()">Save Key</button>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">Your key is stored locally in your browser only — never sent anywhere except directly to Anthropic's API.</p>
+      </div>
+
+      <div class="card mt-16">
+        <div class="card-title">Danger Zone</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:13px;color:var(--text-dim);">Reset all data for this month</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Clears all daily logs and resets MTD figures. Campaigns and history are preserved.</div>
+          </div>
+          <button class="btn btn-danger" onclick="resetMonth()">Reset Month</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- CAMPAIGN MODAL -->
+<div class="modal-overlay" id="campaign-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">New Campaign</div>
+    <div class="form-group">
+      <label class="form-label">Campaign Name</label>
+      <input class="form-input" type="text" id="cm-name" placeholder="e.g. Summer Step Up — June 2026">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Goal / Objective</label>
+      <input class="form-input" type="text" id="cm-goal" placeholder="e.g. Convert 30 warm leads at 50% off">
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Start Date</label>
+        <input class="form-input" type="date" id="cm-start">
+      </div>
+      <div class="form-group">
+        <label class="form-label">End Date</label>
+        <input class="form-input" type="date" id="cm-end">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Revenue Target £</label>
+      <input class="form-input" type="number" id="cm-target" placeholder="0">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-input" id="cm-status">
+        <option value="pending">Upcoming</option>
+        <option value="active">Active</option>
+        <option value="complete">Complete</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Key Dates / Notes</label>
+      <textarea class="form-input" id="cm-notes" placeholder="e.g. Waitlist closes 5th June. Courses reopen 10th June. Email sequence: Day 1 reopening, Day 3 50% off, Day 5 urgency..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Today's Status Update</label>
+      <textarea class="form-input" id="cm-update" placeholder="What happened today on this campaign?"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeCampaignModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCampaign()">Save Campaign</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✓</span>
+  <span id="toast-text">Saved.</span>
+</div>
+
+<script>
+// =====================
+// STATE
+// =====================
+let state = loadState();
+let editingCampaignId = null;
+let currentCampaignFilter = 'all';
+
+function loadState() {
+  try {
+    return JSON.parse(localStorage.getItem('marketing-os-state') || 'null') || getDefaultState();
+  } catch(e) { return getDefaultState(); }
+}
+
+function getDefaultState() {
+  return {
+    settings: { revenueTarget: 81000, ppcTarget: 600, organicTarget: 150, apiKey: '' },
+    days: [],
+    campaigns: [],
+    trends: []
+  };
+}
+
+function saveState() {
+  localStorage.setItem('marketing-os-state', JSON.stringify(state));
+}
+
+// =====================
+// NAVIGATION
+// =====================
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelector('[data-page="' + page + '"]').classList.add('active');
+  if (page === 'scoreboard') refreshScoreboard();
+  if (page === 'campaigns') renderCampaigns();
+  if (page === 'trends' && !document.getElementById('trend-display').querySelector('.trend-headline')) fetchTrend();
+  if (page === 'history') renderHistory();
+  if (page === 'settings') loadSettings();
+}
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => navigate(item.dataset.page));
+});
+
+// =====================
+// DATE / GREETING
+// =====================
+function initDate() {
+  const now = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const h = now.getHours();
+  const greeting = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+
+  document.getElementById('greeting-time').textContent = greeting;
+  document.getElementById('sidebar-day').textContent = days[now.getDay()];
+  document.getElementById('sidebar-date').textContent = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('input-date-label').textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} — takes 2 minutes. Makes the whole day feel in control.`;
+
+  const sub = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('scoreboard-subtitle').textContent = sub;
+}
+
+// =====================
+// MTD CALCULATIONS
+// =====================
+function getMTD() {
+  const now = new Date();
+  const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  return state.days.filter(d => d.date.startsWith(monthStr));
+}
+
+function calcMTD() {
+  const days = getMTD();
+  const totals = {
+    revenue: 0, sales: 0,
+    ppcLeads: 0, metaLeads: 0, organicLeads: 0, otherLeads: 0,
+    ppcSpend: 0, metaSpend: 0, otherSpend: 0,
+    waitlist: 0, forms: 0, emails: 0
+  };
+  days.forEach(d => {
+    totals.revenue += d.salesValue || 0;
+    totals.sales += d.salesCount || 0;
+    totals.ppcLeads += d.ppcLeads || 0;
+    totals.metaLeads += d.metaLeads || 0;
+    totals.organicLeads += d.organicLeads || 0;
+    totals.otherLeads += d.otherLeads || 0;
+    totals.ppcSpend += d.ppcSpend || 0;
+    totals.metaSpend += d.metaSpend || 0;
+    totals.otherSpend += d.otherSpend || 0;
+  });
+  // Latest pipeline from last entry
+  if (days.length > 0) {
+    const last = days[days.length - 1];
+    totals.waitlist = last.waitlist || 0;
+    totals.forms = last.forms || 0;
+    totals.emails = last.emails || 0;
+    totals.pipelineNote = last.otherPipeline || '';
+  }
+  return totals;
+}
+
+function fmt(n) {
+  if (n >= 1000) return '£' + (n/1000).toFixed(1) + 'k';
+  return '£' + Math.round(n).toLocaleString();
+}
+
+function fmtFull(n) {
+  return '£' + Math.round(n).toLocaleString();
+}
+
+// =====================
+// SCOREBOARD
+// =====================
+function refreshScoreboard() {
+  const mtd = calcMTD();
+  const target = state.settings.revenueTarget;
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const dayOfMonth = now.getDate();
+  const daysLeft = daysInMonth - dayOfMonth;
+  const daysPassed = dayOfMonth;
+
+  const pct = Math.min(100, (mtd.revenue / target) * 100);
+  const dailyAvg = daysPassed > 0 ? mtd.revenue / daysPassed : 0;
+  const projected = dailyAvg * daysInMonth;
+  const dailyNeeded = daysLeft > 0 ? (target - mtd.revenue) / daysLeft : 0;
+
+  // Stats
+  document.getElementById('stat-mtd-revenue').textContent = fmt(mtd.revenue);
+  document.getElementById('stat-mtd-pct').textContent = pct.toFixed(1) + '% of target';
+  document.getElementById('stat-days-left').textContent = daysLeft + ' days left';
+  document.getElementById('stat-daily-needed').textContent = dailyNeeded > 0 ? fmtFull(dailyNeeded) + '/day' : '✓ Done';
+  document.getElementById('stat-projected').textContent = fmt(projected);
+  document.getElementById('revenue-progress').style.width = pct + '%';
+
+  // Sidebar
+  document.getElementById('sidebar-progress').style.width = pct + '%';
+  document.getElementById('sidebar-current').textContent = fmt(mtd.revenue);
+
+  // Projected delta
+  const projDelta = document.getElementById('stat-proj-delta');
+  if (projected >= target) {
+    projDelta.textContent = '↑ On track';
+    projDelta.className = 'delta delta-up';
+  } else {
+    const shortfall = target - projected;
+    projDelta.textContent = '↓ ' + fmt(shortfall) + ' short';
+    projDelta.className = 'delta delta-down';
+  }
+
+  // Pace banner
+  const banner = document.getElementById('pace-banner');
+  const headline = document.getElementById('pace-headline');
+  const detail = document.getElementById('pace-detail');
+  const daysLogged = getMTD().length;
+
+  if (daysLogged === 0) {
+    banner.className = 'pace-banner on-track';
+    headline.textContent = 'No data logged yet';
+    detail.textContent = 'Log your first day to see your pace.';
+  } else if (projected >= target * 1.1) {
+    banner.className = 'pace-banner ahead';
+    headline.textContent = '🔥 Ahead of target';
+    detail.textContent = `At your current pace you\'ll hit ${fmt(projected)} — ${fmt(projected - target)} above target.`;
+  } else if (projected >= target * 0.9) {
+    banner.className = 'pace-banner on-track';
+    headline.textContent = '✓ On track';
+    detail.textContent = `Projecting ${fmt(projected)} by month end. Keep the current pace.`;
+  } else {
+    banner.className = 'pace-banner behind';
+    headline.textContent = '⚠ Behind pace';
+    detail.textContent = `At current pace: ${fmt(projected)}. You need ${fmtFull(dailyNeeded)}/day to catch up.`;
+  }
+
+  // Lead targets
+  const ppcTarget = state.settings.ppcTarget;
+  const orgTarget = state.settings.organicTarget;
+  document.getElementById('ppc-leads-val').textContent = mtd.ppcLeads;
+  document.getElementById('ppc-leads-bar').style.width = Math.min(100, (mtd.ppcLeads/ppcTarget)*100) + '%';
+  document.getElementById('meta-leads-val').textContent = mtd.metaLeads;
+  document.getElementById('meta-leads-bar').style.width = Math.min(100, (mtd.metaLeads/300)*100) + '%';
+  document.getElementById('organic-leads-val').textContent = mtd.organicLeads;
+  document.getElementById('organic-leads-bar').style.width = Math.min(100, (mtd.organicLeads/orgTarget)*100) + '%';
+
+  // Channel table
+  const channelBody = document.getElementById('channel-table-body');
+  const channels = [
+    { name: 'PPC', tag: 'tag-ppc', leads: mtd.ppcLeads, spend: mtd.ppcSpend },
+    { name: 'Meta', tag: 'tag-meta', leads: mtd.metaLeads, spend: mtd.metaSpend },
+    { name: 'Organic', tag: 'tag-organic', leads: mtd.organicLeads, spend: 0 },
+    { name: 'Other', tag: 'tag-other', leads: mtd.otherLeads, spend: mtd.otherSpend },
+  ];
+  // distribute sales proportionally to leads
+  const totalLeads = mtd.ppcLeads + mtd.metaLeads + mtd.organicLeads + mtd.otherLeads;
+  channelBody.innerHTML = channels.map(ch => {
+    const cpl = ch.leads > 0 && ch.spend > 0 ? '£' + (ch.spend/ch.leads).toFixed(2) : ch.spend > 0 ? '—' : '—';
+    const chSales = totalLeads > 0 ? Math.round((ch.leads / totalLeads) * mtd.sales) : '—';
+    const conv = ch.leads > 0 && mtd.sales > 0 ? ((chSales/ch.leads)*100).toFixed(1)+'%' : '—';
+    return `<div class="channel-row data-row">
+      <div class="col"><span class="channel-tag ${ch.tag}">${ch.name}</span></div>
+      <div class="col">${ch.leads}</div>
+      <div class="col">${cpl}</div>
+      <div class="col">${chSales}</div>
+      <div class="col">${conv}</div>
+    </div>`;
+  }).join('');
+
+  // Pipeline pulse
+  document.getElementById('pl-waitlist').textContent = mtd.waitlist || '—';
+  document.getElementById('pl-forms').textContent = mtd.forms || '—';
+  document.getElementById('pl-emails').textContent = mtd.emails || '—';
+  const plOther = document.getElementById('pl-other');
+  plOther.textContent = mtd.pipelineNote || '—';
+  plOther.style.fontSize = mtd.pipelineNote && mtd.pipelineNote.length > 8 ? '11px' : '22px';
+}
+
+// =====================
+// SAVE DAY
+// =====================
+function saveDay() {
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+
+  // Remove existing entry for today if re-logging
+  state.days = state.days.filter(d => d.date !== dateStr);
+
+  const entry = {
+    date: dateStr,
+    ppcLeads: parseFloat(document.getElementById('in-ppc').value) || 0,
+    metaLeads: parseFloat(document.getElementById('in-meta').value) || 0,
+    organicLeads: parseFloat(document.getElementById('in-organic').value) || 0,
+    otherLeads: parseFloat(document.getElementById('in-other-leads').value) || 0,
+    ppcSpend: parseFloat(document.getElementById('in-ppc-spend').value) || 0,
+    metaSpend: parseFloat(document.getElementById('in-meta-spend').value) || 0,
+    otherSpend: parseFloat(document.getElementById('in-other-spend').value) || 0,
+    salesCount: parseInt(document.getElementById('in-sales-count').value) || 0,
+    salesValue: parseFloat(document.getElementById('in-sales-value').value) || 0,
+    waitlist: parseInt(document.getElementById('in-waitlist').value) || 0,
+    forms: parseInt(document.getElementById('in-forms').value) || 0,
+    emails: parseInt(document.getElementById('in-emails').value) || 0,
+    otherPipeline: document.getElementById('in-other-pipeline').value || '',
+    note: document.getElementById('in-note').value || ''
+  };
+
+  state.days.push(entry);
+  saveState();
+  showToast('Today logged. Scoreboard updated.');
+
+  // Clear inputs
+  ['in-ppc','in-meta','in-organic','in-other-leads','in-ppc-spend','in-meta-spend','in-other-spend',
+   'in-sales-count','in-sales-value','in-waitlist','in-forms','in-emails','in-other-pipeline','in-note']
+    .forEach(id => document.getElementById(id).value = '');
+
+  navigate('scoreboard');
+}
+
+// =====================
+// CAMPAIGNS
+// =====================
+function openCampaignModal(id) {
+  editingCampaignId = id || null;
+  const modal = document.getElementById('campaign-modal');
+  if (id) {
+    const c = state.campaigns.find(c => c.id === id);
+    document.getElementById('modal-title').textContent = 'Edit Campaign';
+    document.getElementById('cm-name').value = c.name || '';
+    document.getElementById('cm-goal').value = c.goal || '';
+    document.getElementById('cm-start').value = c.start || '';
+    document.getElementById('cm-end').value = c.end || '';
+    document.getElementById('cm-target').value = c.target || '';
+    document.getElementById('cm-status').value = c.status || 'pending';
+    document.getElementById('cm-notes').value = c.notes || '';
+    document.getElementById('cm-update').value = '';
+  } else {
+    document.getElementById('modal-title').textContent = 'New Campaign';
+    ['cm-name','cm-goal','cm-start','cm-end','cm-target','cm-notes','cm-update'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('cm-status').value = 'pending';
+  }
+  modal.classList.add('open');
+}
+
+function closeCampaignModal() {
+  document.getElementById('campaign-modal').classList.remove('open');
+  editingCampaignId = null;
+}
+
+function saveCampaign() {
+  const name = document.getElementById('cm-name').value.trim();
+  if (!name) { showToast('Campaign needs a name.'); return; }
+
+  const update = document.getElementById('cm-update').value.trim();
+  const now = new Date().toISOString().split('T')[0];
+
+  if (editingCampaignId) {
+    const idx = state.campaigns.findIndex(c => c.id === editingCampaignId);
+    state.campaigns[idx] = {
+      ...state.campaigns[idx],
+      name, goal: document.getElementById('cm-goal').value,
+      start: document.getElementById('cm-start').value,
+      end: document.getElementById('cm-end').value,
+      target: parseFloat(document.getElementById('cm-target').value) || 0,
+      status: document.getElementById('cm-status').value,
+      notes: document.getElementById('cm-notes').value,
+    };
+    if (update) {
+      state.campaigns[idx].updates = state.campaigns[idx].updates || [];
+      state.campaigns[idx].updates.push({ date: now, text: update });
+    }
+  } else {
+    const campaign = {
+      id: Date.now().toString(),
+      name, goal: document.getElementById('cm-goal').value,
+      start: document.getElementById('cm-start').value,
+      end: document.getElementById('cm-end').value,
+      target: parseFloat(document.getElementById('cm-target').value) || 0,
+      status: document.getElementById('cm-status').value,
+      notes: document.getElementById('cm-notes').value,
+      updates: update ? [{ date: now, text: update }] : [],
+      createdAt: now
+    };
+    state.campaigns.push(campaign);
+  }
+
+  saveState();
+  closeCampaignModal();
+  renderCampaigns();
+  showToast('Campaign saved.');
+}
+
+function deleteCampaign(id) {
+  if (!confirm('Delete this campaign?')) return;
+  state.campaigns = state.campaigns.filter(c => c.id !== id);
+  saveState();
+  renderCampaigns();
+  showToast('Campaign deleted.');
+}
+
+function filterCampaigns(filter, btn) {
+  currentCampaignFilter = filter;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCampaigns();
+}
+
+function renderCampaigns() {
+  const list = document.getElementById('campaigns-list');
+  let campaigns = state.campaigns;
+  if (currentCampaignFilter !== 'all') {
+    campaigns = campaigns.filter(c => c.status === currentCampaignFilter);
+  }
+
+  if (campaigns.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">◎</div><p>No campaigns here yet.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = campaigns.map(c => {
+    const lastUpdate = c.updates && c.updates.length > 0 ? c.updates[c.updates.length - 1] : null;
+    const dateRange = c.start && c.end ? `${c.start} → ${c.end}` : c.start || '—';
+    return `
+      <div class="campaign-card status-${c.status}">
+        <div class="campaign-header">
+          <div>
+            <div class="campaign-name">${c.name}</div>
+            <div class="campaign-meta">${c.goal || 'No goal set'} &nbsp;·&nbsp; ${dateRange}${c.target ? ' &nbsp;·&nbsp; Target: £' + c.target.toLocaleString() : ''}</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span class="campaign-status-badge badge-${c.status}">${c.status === 'pending' ? 'Upcoming' : c.status === 'active' ? 'Active' : 'Complete'}</span>
+            <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px;" onclick="openCampaignModal('${c.id}')">Edit</button>
+            <button class="btn btn-danger" style="padding:5px 10px;font-size:11px;" onclick="deleteCampaign('${c.id}')">✕</button>
+          </div>
+        </div>
+        ${c.notes ? `<div class="campaign-notes">${c.notes.replace(/\n/g,'<br>')}</div>` : ''}
+        ${lastUpdate ? `<div class="campaign-notes" style="margin-top:8px;"><span style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;color:var(--accent);">Latest update ${lastUpdate.date}</span><br>${lastUpdate.text}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+// =====================
+// TREND BRIEF
+// =====================
+async function fetchTrend() {
+  const apiKey = state.settings.apiKey;
+  const display = document.getElementById('trend-display');
+
+  if (!apiKey) {
+    display.innerHTML = `
+      <div style="text-align:center;padding:30px 20px;">
+        <div style="font-size:24px;margin-bottom:12px;">◐</div>
+        <div style="color:var(--text-dim);font-size:13px;line-height:1.6;margin-bottom:16px;">Add your Anthropic API key in Settings to unlock the daily trend brief.</div>
+        <button class="btn btn-primary" onclick="navigate('settings')">Go to Settings →</button>
+      </div>`;
+    return;
+  }
+
+  display.innerHTML = `<div class="trend-loading"><div class="spinner"></div>Generating your brief — just a moment...</div>`;
+
+  const today = new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are a sharp marketing intelligence advisor for Tristan, Head of Marketing at Event Crowd — a UK company selling event management and marketing courses. The company is focused on short-term revenue this year, targeting £81k/month. Tristan runs email campaigns, social media, some Meta advertising, and oversees PPC (Google), SEO, web development, and blog freelancers. He sells to aspiring event managers, career changers, and business owners. Be concise, direct, and practical. Always relate trends back to Event Crowd specifically.`,
+        messages: [{
+          role: 'user',
+          content: `Today is ${today}. Give me a sharp daily marketing & AI trend brief. Format your response EXACTLY as valid JSON (no markdown, no code blocks, just raw JSON):
+
+{
+  "headline": "One compelling headline for today's most important trend (max 12 words)",
+  "bullets": ["Key point 1", "Key point 2", "Key point 3"],
+  "ec_angle": "One specific, actionable paragraph on what this means for Event Crowd — what Tristan should consider or try."
+}
+
+Pick the single most relevant trend for a UK online course/event education company right now — could be AI tools for marketing, email strategies, Meta ad changes, search trends, consumer behaviour, or anything genuinely useful.`
+        }]
+      })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content[0].text;
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+
+    const trendHTML = `
+      <div class="trend-content">
+        <div class="trend-headline">${parsed.headline}</div>
+        <ul class="trend-bullets">
+          ${parsed.bullets.map(b => `<li>${b}</li>`).join('')}
+        </ul>
+        <div class="ec-angle">
+          <div class="ec-label">What this means for Event Crowd</div>
+          <p>${parsed.ec_angle}</p>
+        </div>
+      </div>`;
+
+    display.innerHTML = trendHTML;
+
+    // Store in history
+    const today2 = new Date().toISOString().split('T')[0];
+    state.trends = state.trends.filter(t => t.date !== today2);
+    state.trends.unshift({ date: today2, ...parsed });
+    if (state.trends.length > 30) state.trends = state.trends.slice(0, 30);
+    saveState();
+    renderTrendHistory();
+
+  } catch(err) {
+    display.innerHTML = `<div style="color:var(--red);font-size:13px;padding:16px 0;">Failed to load brief: ${err.message}. Check your API key in Settings.</div>`;
+  }
+}
+
+function renderTrendHistory() {
+  const card = document.getElementById('trend-history-card');
+  const list = document.getElementById('trend-history-list');
+  const history = state.trends.slice(1);
+  if (history.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = history.map(t => `
+    <div style="padding:12px 0;border-bottom:1px solid var(--border);">
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:4px;">${t.date}</div>
+      <div style="font-size:13px;color:var(--text-dim);">${t.headline}</div>
+    </div>`).join('');
+}
+
+// =====================
+// HISTORY
+// =====================
+function renderHistory() {
+  const display = document.getElementById('history-display');
+  const sorted = [...state.days].sort((a,b) => b.date.localeCompare(a.date));
+  if (sorted.length === 0) {
+    display.innerHTML = `<div class="empty-state"><div class="empty-icon">≡</div><p>No entries yet.</p></div>`;
+    return;
+  }
+  display.innerHTML = `
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>Date</th><th>Sales</th><th>Value</th>
+          <th>PPC Leads</th><th>Meta</th><th>Organic</th>
+          <th>PPC Spend</th><th>Waitlist</th><th>Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${sorted.map(d => `<tr>
+          <td>${d.date}</td>
+          <td>${d.salesCount}</td>
+          <td>£${(d.salesValue||0).toLocaleString()}</td>
+          <td>${d.ppcLeads}</td>
+          <td>${d.metaLeads}</td>
+          <td>${d.organicLeads}</td>
+          <td>£${(d.ppcSpend||0).toFixed(0)}</td>
+          <td>${d.waitlist || '—'}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.note || '—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// =====================
+// SETTINGS
+// =====================
+function loadSettings() {
+  document.getElementById('s-revenue-target').value = state.settings.revenueTarget;
+  document.getElementById('s-ppc-target').value = state.settings.ppcTarget;
+  document.getElementById('s-organic-target').value = state.settings.organicTarget;
+  if (state.settings.apiKey) document.getElementById('s-api-key').value = '••••••••••••••••';
+}
+
+function saveSettings() {
+  state.settings.revenueTarget = parseFloat(document.getElementById('s-revenue-target').value) || 81000;
+  state.settings.ppcTarget = parseFloat(document.getElementById('s-ppc-target').value) || 600;
+  state.settings.organicTarget = parseFloat(document.getElementById('s-organic-target').value) || 150;
+  saveState();
+  showToast('Targets saved.');
+  refreshScoreboard();
+}
+
+function saveApiKey() {
+  const key = document.getElementById('s-api-key').value;
+  if (!key || key.startsWith('•')) return;
+  state.settings.apiKey = key;
+  saveState();
+  showToast('API key saved.');
+}
+
+function resetMonth() {
+  if (!confirm('Reset all data for this month? This cannot be undone.')) return;
+  const now = new Date();
+  const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  state.days = state.days.filter(d => !d.date.startsWith(monthStr));
+  saveState();
+  showToast('Month reset.');
+  refreshScoreboard();
+}
+
+// =====================
+// TOAST
+// =====================
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-text').textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// =====================
+// INIT
+// =====================
+initDate();
+refreshScoreboard();
+
+// Auto-fetch trend on load if we have a key and no trend today
+const todayStr = new Date().toISOString().split('T')[0];
+const hasTodayTrend = state.trends.length > 0 && state.trends[0].date === todayStr;
+if (state.settings.apiKey && !hasTodayTrend) {
+  // Don't auto-fetch on page load unless user navigates to trends
+} else if (state.trends.length > 0 && state.trends[0].date === todayStr) {
+  const t = state.trends[0];
+  document.getElementById('trend-display').innerHTML = `
+    <div class="trend-content">
+      <div class="trend-headline">${t.headline}</div>
+      <ul class="trend-bullets">${t.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+      <div class="ec-angle">
+        <div class="ec-label">What this means for Event Crowd</div>
+        <p>${t.ec_angle}</p>
+      </div>
+    </div>`;
+  renderTrendHistory();
+}
+</script>
+</body>
+</html>
