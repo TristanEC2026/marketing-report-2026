@@ -1674,16 +1674,17 @@ function refreshScoreboard() {
   const leadDailyAvg = days.length > 0 ? totalLeads / days.length : 0;
   document.getElementById('stat-leads-delta').textContent = `~${leadDailyAvg.toFixed(1)} per day avg`;
 
-  // ---- WEB & CONVERSION STATS ----
+  // ---- WEB & CONVERSION STATS ---- (HubSpot-driven, safe fallbacks)
   const avgSessions = days.length > 0 ? Math.round(mtd.sessions / days.length) : 0;
   const clickLeadRate = mtd.clicks > 0 ? ((totalLeads / mtd.clicks) * 100).toFixed(1) + '%' : '—';
   const leadEnrolRate = totalLeads > 0 && mtd.sales > 0 ? ((mtd.sales / totalLeads) * 100).toFixed(1) + '%' : '—';
-  document.getElementById('stat-sessions').textContent = mtd.sessions > 0 ? mtd.sessions.toLocaleString() : '—';
-  document.getElementById('stat-sessions-delta').textContent = avgSessions > 0 ? `~${avgSessions.toLocaleString()} avg/day` : 'log sessions daily';
-  document.getElementById('stat-click-lead').textContent = clickLeadRate;
-  document.getElementById('stat-click-lead-delta').textContent = `${mtd.clicks > 0 ? mtd.clicks.toLocaleString() + ' clicks' : 'log clicks daily'}`;
-  document.getElementById('stat-lead-enrol').textContent = leadEnrolRate;
-  document.getElementById('stat-avg-sessions').textContent = avgSessions > 0 ? avgSessions.toLocaleString() : '—';
+  const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  safeSet('stat-sessions', mtd.sessions > 0 ? mtd.sessions.toLocaleString() : '—');
+  safeSet('stat-sessions-delta', avgSessions > 0 ? `~${avgSessions.toLocaleString()} avg/day` : 'log sessions daily');
+  safeSet('stat-click-lead', clickLeadRate);
+  safeSet('stat-click-lead-delta', mtd.clicks > 0 ? mtd.clicks.toLocaleString() + ' clicks' : 'log clicks daily');
+  safeSet('stat-lead-enrol', leadEnrolRate);
+  safeSet('stat-avg-sessions', avgSessions > 0 ? avgSessions.toLocaleString() : '—');
 
   // ---- SPEND STATS ----
   document.getElementById('stat-total-spend').textContent = fmt(totalSpend);
@@ -2201,10 +2202,10 @@ function renderHubSpotFromCache() {
   const mtd = calcMTD();
   if (mtd.sessions > 0) {
     document.getElementById('stat-click-lead').textContent = ((contacts.length / mtd.sessions) * 100).toFixed(1) + '%';
-    document.getElementById('stat-click-lead-delta').textContent = `${mtd.sessions.toLocaleString()} sessions`;
+    const _el1 = document.getElementById('stat-click-lead-delta'); if(_el1) _el1.textContent = `${mtd.sessions.toLocaleString()} sessions`;
   }
   if (contacts.length > 0 && mtd.sales > 0) {
-    document.getElementById('stat-lead-enrol').textContent = ((mtd.sales / contacts.length) * 100).toFixed(1) + '%';
+    const _el2 = document.getElementById('stat-lead-enrol'); if(_el2) _el2.textContent = ((mtd.sales / contacts.length) * 100).toFixed(1) + '%';
   }
 
   const fetchedMins = Math.round((Date.now() - state.hsCache.fetchedAt) / 60000);
@@ -2275,10 +2276,10 @@ async function fetchHubSpotData() {
     if (mtd.sessions > 0) {
       const rate = ((contacts.length / mtd.sessions) * 100).toFixed(1) + '%';
       document.getElementById('stat-click-lead').textContent = rate;
-      document.getElementById('stat-click-lead-delta').textContent = `${mtd.sessions.toLocaleString()} sessions`;
+      const _el1 = document.getElementById('stat-click-lead-delta'); if(_el1) _el1.textContent = `${mtd.sessions.toLocaleString()} sessions`;
     }
     const leadEnrolRate = contacts.length > 0 && mtd.sales > 0 ? ((mtd.sales / contacts.length) * 100).toFixed(1) + '%' : '—';
-    document.getElementById('stat-lead-enrol').textContent = leadEnrolRate;
+    const _el2 = document.getElementById('stat-lead-enrol'); if(_el2) _el2.textContent = leadEnrolRate;
 
     // Page breakdown — extract page name from form name
     const pageCounts = {};
