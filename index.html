@@ -1075,6 +1075,7 @@
           <div style="margin-top:12px;display:flex;align-items:center;gap:10px;">
             <label class="form-label" style="margin:0;white-space:nowrap;">Logging for date:</label>
             <input class="form-input" type="date" id="log-date-picker" style="width:180px;" onchange="onDatePickerChange()">
+            <span id="draft-indicator" style="font-family:var(--font-mono);font-size:10px;color:var(--accent);display:none;">● draft saved</span>
           </div>
         </div>
       </div>
@@ -1417,7 +1418,14 @@ function navigate(page) {
   document.getElementById('page-' + page).classList.add('active');
   document.querySelector('[data-page="' + page + '"]').classList.add('active');
   if (page === 'scoreboard') refreshScoreboard();
-  if (page === 'input') renderInputPipeline();
+  if (page === 'input') {
+    renderInputPipeline();
+    const dateStr = document.getElementById('log-date-picker').value;
+    if (dateStr) {
+      loadDraft(dateStr);
+      attachDraftListeners(dateStr);
+    }
+  }
   if (page === 'campaigns') renderCampaigns();
   if (page === 'trends' && !document.getElementById('trend-display').querySelector('.trend-headline')) fetchTrend();
   if (page === 'history') renderHistory();
@@ -1806,6 +1814,87 @@ function refreshScoreboard() {
 // =====================
 // SAVE DAY
 // =====================
+// =====================
+// FORM DRAFT SYSTEM
+// =====================
+const DRAFT_FIELDS = ['in-ppc','in-meta','in-organic','in-other-leads','in-ppc-spend','in-meta-spend','in-other-spend','in-sales-count','in-sales-value','in-sessions','in-clicks','in-other-pipeline','in-note'];
+
+function getDraftKey(dateStr) { return 'draft-' + dateStr; }
+
+function saveDraft(dateStr) {
+  if (!dateStr) return;
+  const draft = {};
+  DRAFT_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) draft[id] = el.value;
+  });
+  // Also save campaign pipeline fields
+  state.campaigns.filter(c => c.status !== 'complete').forEach(c => {
+    ['waitlist','forms','emails'].forEach(f => {
+      const el = document.getElementById(`pp-${f}-${c.id}`);
+      if (el) draft[`pp-${f}-${c.id}`] = el.value;
+    });
+  });
+  localStorage.setItem(getDraftKey(dateStr), JSON.stringify(draft));
+  const ind = document.getElementById('draft-indicator');
+  if (ind) ind.style.display = 'inline';
+}
+
+function loadDraft(dateStr) {
+  if (!dateStr) return;
+  // First check if there's a saved entry for this date — pre-fill from that
+  const existing = state.days.find(d => d.date === dateStr);
+  const raw = localStorage.getItem(getDraftKey(dateStr));
+  const draft = raw ? JSON.parse(raw) : null;
+
+  // Draft takes priority over saved entry (most recent edits win)
+  if (draft) {
+    DRAFT_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && draft[id] !== undefined) el.value = draft[id];
+    });
+    state.campaigns.filter(c => c.status !== 'complete').forEach(c => {
+      ['waitlist','forms','emails'].forEach(f => {
+        const el = document.getElementById(`pp-${f}-${c.id}`);
+        if (el && draft[`pp-${f}-${c.id}`] !== undefined) el.value = draft[`pp-${f}-${c.id}`];
+      });
+    });
+  } else if (existing) {
+    // Pre-fill from saved entry so editing an existing day is easy
+    document.getElementById('in-ppc').value = existing.ppcLeads || '';
+    document.getElementById('in-meta').value = existing.metaLeads || '';
+    document.getElementById('in-organic').value = existing.organicLeads || '';
+    document.getElementById('in-other-leads').value = existing.otherLeads || '';
+    document.getElementById('in-ppc-spend').value = existing.ppcSpend || '';
+    document.getElementById('in-meta-spend').value = existing.metaSpend || '';
+    document.getElementById('in-other-spend').value = existing.otherSpend || '';
+    document.getElementById('in-sales-count').value = existing.salesCount || '';
+    document.getElementById('in-sales-value').value = existing.salesValue || '';
+    document.getElementById('in-sessions').value = existing.sessions || '';
+    document.getElementById('in-clicks').value = existing.clicks || '';
+    document.getElementById('in-other-pipeline').value = existing.otherPipeline || '';
+    document.getElementById('in-note').value = existing.note || '';
+  } else {
+    // Clear form for a fresh date
+    DRAFT_FIELDS.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  }
+}
+
+function clearDraft(dateStr) {
+  localStorage.removeItem(getDraftKey(dateStr));
+  const ind = document.getElementById('draft-indicator');
+  if (ind) ind.style.display = 'none';
+}
+
+function attachDraftListeners(dateStr) {
+  DRAFT_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.oninput = () => saveDraft(dateStr);
+    }
+  });
+}
+
 function onDatePickerChange() {
   const picked = document.getElementById('log-date-picker').value;
   if (!picked) return;
@@ -1815,6 +1904,8 @@ function onDatePickerChange() {
   document.getElementById('input-page-title').innerHTML = `Log <em>${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}</em>`;
   document.getElementById('input-date-label').textContent = `Logging data for ${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}.`;
   document.getElementById('weekend-banner').style.display = 'none';
+  loadDraft(picked);
+  attachDraftListeners(picked);
 }
 
 
@@ -1873,16 +1964,15 @@ function saveDay() {
 
   state.days.push(entry);
   saveState();
+  clearDraft(dateStr);
 
   const d = new Date(dateStr + 'T12:00:00');
   const days2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months2 = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   showToast(`${days2[d.getDay()]} ${d.getDate()} ${months2[d.getMonth()]} logged.`);
 
-  // Clear inputs
-  ['in-ppc','in-meta','in-organic','in-other-leads','in-ppc-spend','in-meta-spend','in-other-spend',
-   'in-sales-count','in-sales-value','in-sessions','in-clicks','in-other-pipeline','in-note']
-    .forEach(id => document.getElementById(id).value = '');
+  // Clear form fields
+  DRAFT_FIELDS.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
   navigate('scoreboard');
 }
