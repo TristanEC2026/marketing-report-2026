@@ -1843,15 +1843,14 @@ function refreshScoreboard() {
   // Pipeline pulse
   renderScoreboardPipeline();
 
-  // HubSpot data — fetch fresh if no cache or cache is older than 30 mins
-  const cacheAge = state.hsCache ? Date.now() - state.hsCache.fetchedAt : Infinity;
-  if (state.settings.hsToken && cacheAge > 30 * 60 * 1000) {
-    fetchHubSpotData();
-  } else if (state.hsCache) {
-    // Re-render from cache instantly
+  // HubSpot — render from cache if available, don't auto-fetch on every refresh
+  if (state.hsCache) {
     renderHubSpotFromCache();
-  } else if (state.settings.hsToken) {
-    fetchHubSpotData();
+  } else {
+    const pageBreakdown = document.getElementById('hs-page-breakdown');
+    const sourceBreakdown = document.getElementById('hs-source-breakdown');
+    if (pageBreakdown) pageBreakdown.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">${state.settings.hsToken ? 'Click ↻ Refresh to load HubSpot data.' : 'Add your HubSpot token in <span style="color:var(--accent);cursor:pointer;" onclick="navigate(\'settings\')">Settings →</span>'}</div>`;
+    if (sourceBreakdown) sourceBreakdown.innerHTML = `<div style="color:var(--text-muted);font-size:12px;padding:8px 0;">${state.settings.hsToken ? 'Click Refresh to load.' : 'Add HubSpot token in Settings.'}</div>`;
   }
 }
 
@@ -2621,6 +2620,7 @@ function saveHsToken() {
 }
 
 
+function saveApiKey() {
   const key = document.getElementById('s-api-key').value;
   if (!key || key.startsWith('•')) return;
   state.settings.apiKey = key;
