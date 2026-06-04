@@ -941,40 +941,59 @@
       </div>
 
       <!-- SECTION 2: WEB & CONVERSION -->
-      <div class="section-divider">Web & Conversion</div>
+      <div class="section-divider">Web & Conversion — Live from HubSpot</div>
 
       <div class="grid-4" style="margin-bottom:16px;">
         <div class="stat-tile">
-          <div class="label">Web Sessions MTD</div>
-          <div class="value" id="stat-sessions">—</div>
-          <div class="delta delta-neutral" id="stat-sessions-delta">—</div>
+          <div class="label">Leads Yesterday</div>
+          <div class="value" id="hs-leads-yesterday">—</div>
+          <div class="delta delta-neutral" id="hs-leads-yesterday-delta">from HubSpot</div>
         </div>
         <div class="stat-tile">
-          <div class="label">Click → Lead Rate</div>
+          <div class="label">Leads MTD (HubSpot)</div>
+          <div class="value" id="hs-leads-mtd">—</div>
+          <div class="delta delta-neutral" id="hs-leads-mtd-delta">this month</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">Sessions → Lead Rate</div>
           <div class="value" id="stat-click-lead">—</div>
-          <div class="delta delta-neutral" id="stat-click-lead-delta">sessions to leads</div>
+          <div class="delta delta-neutral" id="stat-click-lead-delta">log sessions to unlock</div>
         </div>
         <div class="stat-tile">
-          <div class="label">Lead → Enrolment Rate</div>
+          <div class="label">Lead → Enrolment</div>
           <div class="value" id="stat-lead-enrol">—</div>
           <div class="delta delta-neutral">secondary metric</div>
         </div>
-        <div class="stat-tile">
-          <div class="label">Avg Daily Sessions</div>
-          <div class="value" id="stat-avg-sessions">—</div>
-          <div class="delta delta-neutral">this month</div>
-        </div>
       </div>
 
-      <!-- Web sessions chart -->
+      <!-- HubSpot page breakdown -->
       <div class="card" style="margin-bottom:16px;">
-        <div class="card-title">Web Sessions vs Leads — Daily</div>
-        <div style="position:relative;height:200px;">
-          <canvas id="chart-sessions-leads"></canvas>
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Top Converting Pages — This Month</span>
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="fetchHubSpotData()">↻ Refresh</button>
+        </div>
+        <div id="hs-page-breakdown">
+          <div class="trend-loading"><div class="spinner"></div>Loading from HubSpot...</div>
         </div>
       </div>
 
-      <!-- SECTION 3: AD SPEND -->
+      <!-- Source breakdown -->
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="card">
+          <div class="card-title">Leads by Source — MTD</div>
+          <div id="hs-source-breakdown">
+            <div style="color:var(--text-muted);font-size:12px;padding:12px 0;">Loading...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Web Sessions vs Leads — Daily</div>
+          <div style="position:relative;height:180px;">
+            <canvas id="chart-sessions-leads"></canvas>
+          </div>
+        </div>
+      </div>
+
+
       <div class="section-divider">Ad Spend</div>
 
       <div class="grid-3" style="margin-bottom:16px;">
@@ -1286,6 +1305,19 @@
       </div>
 
       <div class="card mt-16">
+        <div class="card-title">HubSpot Private App Token</div>
+        <div class="api-key-section">
+          <p>Used to pull live lead and conversion data from HubSpot automatically. Create a Private App in HubSpot: <strong>Settings → Integrations → Private Apps → Create</strong>. Give it CRM read scopes (contacts). Copy the access token here.</p>
+          <div class="api-key-row">
+            <input class="form-input" type="password" id="s-hs-token" placeholder="pat-na1-...">
+            <button class="btn btn-primary" onclick="saveHsToken()">Save</button>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">Stored locally in your browser only — never sent anywhere except directly to HubSpot's API.</p>
+      </div>
+
+
+      <div class="card mt-16">
         <div class="card-title">AI Trend Brief — Anthropic API Key</div>
         <div class="api-key-section">
           <p>The Trend Brief uses the Claude API to fetch a fresh marketing intelligence briefing each morning. You'll need a free Anthropic API key. <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);">Get one here →</a></p>
@@ -1398,10 +1430,11 @@ function loadState() {
 
 function getDefaultState() {
   return {
-    settings: { revenueTarget: 81000, ppcTarget: 600, organicTarget: 150, apiKey: '' },
+    settings: { revenueTarget: 81000, ppcTarget: 600, organicTarget: 150, apiKey: '', hsToken: '' },
     days: [],
     campaigns: [],
-    trends: []
+    trends: [],
+    hsCache: null
   };
 }
 
@@ -1809,11 +1842,19 @@ function refreshScoreboard() {
 
   // Pipeline pulse
   renderScoreboardPipeline();
+
+  // HubSpot data — fetch fresh if no cache or cache is older than 30 mins
+  const cacheAge = state.hsCache ? Date.now() - state.hsCache.fetchedAt : Infinity;
+  if (state.settings.hsToken && cacheAge > 30 * 60 * 1000) {
+    fetchHubSpotData();
+  } else if (state.hsCache) {
+    // Re-render from cache instantly
+    renderHubSpotFromCache();
+  } else if (state.settings.hsToken) {
+    fetchHubSpotData();
+  }
 }
 
-// =====================
-// SAVE DAY
-// =====================
 // =====================
 // FORM DRAFT SYSTEM
 // =====================
@@ -2110,9 +2151,205 @@ function renderCampaigns() {
   }).join('');
 }
 
+function renderHubSpotFromCache() {
+  if (!state.hsCache) return;
+  const { data: contacts, total } = state.hsCache;
+  const now = new Date();
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()).getTime();
+  const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59).getTime();
+
+  const yesterdayLeads = contacts.filter(c => {
+    const d = new Date(c.properties.first_conversion_date).getTime();
+    return d >= yesterdayStart && d <= yesterdayEnd;
+  });
+
+  document.getElementById('hs-leads-yesterday').textContent = yesterdayLeads.length;
+  document.getElementById('hs-leads-yesterday-delta').textContent = yesterday.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  document.getElementById('hs-leads-mtd').textContent = total > 200 ? `${total}+` : contacts.length;
+
+  const mtd = calcMTD();
+  if (mtd.sessions > 0) {
+    document.getElementById('stat-click-lead').textContent = ((contacts.length / mtd.sessions) * 100).toFixed(1) + '%';
+    document.getElementById('stat-click-lead-delta').textContent = `${mtd.sessions.toLocaleString()} sessions`;
+  }
+  if (contacts.length > 0 && mtd.sales > 0) {
+    document.getElementById('stat-lead-enrol').textContent = ((mtd.sales / contacts.length) * 100).toFixed(1) + '%';
+  }
+
+  const fetchedMins = Math.round((Date.now() - state.hsCache.fetchedAt) / 60000);
+  const pageBreakdown = document.getElementById('hs-page-breakdown');
+  const sourceBreakdown = document.getElementById('hs-source-breakdown');
+  if (pageBreakdown && pageBreakdown.innerHTML.includes('spinner')) {
+    fetchHubSpotData(); // Cache is stale-looking, refresh
+    return;
+  }
+  // Add cache timestamp note
+  const note = document.querySelector('.hs-cache-note');
+  if (!note && pageBreakdown) {
+    const n = document.createElement('div');
+    n.className = 'hs-cache-note';
+    n.style.cssText = 'font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:8px;';
+    n.textContent = `Last fetched ${fetchedMins} min ago`;
+    pageBreakdown.appendChild(n);
+  }
+}
+
 // =====================
-// TREND BRIEF
+// HUBSPOT DATA
 // =====================
+async function fetchHubSpotData() {
+  const token = state.settings.hsToken;
+  const pageBreakdown = document.getElementById('hs-page-breakdown');
+  const sourceBreakdown = document.getElementById('hs-source-breakdown');
+
+  if (!token) {
+    if (pageBreakdown) pageBreakdown.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">Add your HubSpot Private App token in <span style="color:var(--accent);cursor:pointer;" onclick="navigate('settings')">Settings →</span></div>`;
+    if (sourceBreakdown) sourceBreakdown.innerHTML = `<div style="color:var(--text-muted);font-size:12px;padding:8px 0;">Add HubSpot token in Settings.</div>`;
+    return;
+  }
+
+  if (pageBreakdown) pageBreakdown.innerHTML = `<div class="trend-loading"><div class="spinner"></div>Pulling from HubSpot...</div>`;
+
+  try {
+    // Get start of current month and yesterday
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+    const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()).getTime();
+    const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59).getTime();
+
+    // Fetch MTD contacts
+    const mtdRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        filterGroups: [{ filters: [{ propertyName: 'first_conversion_date', operator: 'GTE', value: String(monthStart) }] }],
+        properties: ['first_conversion_event_name', 'hs_analytics_source', 'first_conversion_date', 'hs_analytics_first_url'],
+        limit: 200,
+        sorts: [{ propertyName: 'first_conversion_date', direction: 'DESCENDING' }]
+      })
+    });
+
+    if (!mtdRes.ok) throw new Error(`HubSpot API error: ${mtdRes.status}`);
+    const mtdData = await mtdRes.json();
+    const contacts = mtdData.results || [];
+    const total = mtdData.total || 0;
+
+    // Yesterday's leads
+    const yesterdayLeads = contacts.filter(c => {
+      const d = new Date(c.properties.first_conversion_date).getTime();
+      return d >= yesterdayStart && d <= yesterdayEnd;
+    });
+
+    // Update stat tiles
+    document.getElementById('hs-leads-yesterday').textContent = yesterdayLeads.length;
+    document.getElementById('hs-leads-yesterday-delta').textContent = yesterday.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    document.getElementById('hs-leads-mtd').textContent = total > 200 ? `${total}+` : contacts.length;
+    document.getElementById('hs-leads-mtd-delta').textContent = `since ${now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).split(' ')[1]} 1st`;
+
+    // Session-based conversion rate (if sessions logged)
+    const mtd = calcMTD();
+    if (mtd.sessions > 0) {
+      const rate = ((contacts.length / mtd.sessions) * 100).toFixed(1) + '%';
+      document.getElementById('stat-click-lead').textContent = rate;
+      document.getElementById('stat-click-lead-delta').textContent = `${mtd.sessions.toLocaleString()} sessions`;
+    }
+    const leadEnrolRate = contacts.length > 0 && mtd.sales > 0 ? ((mtd.sales / contacts.length) * 100).toFixed(1) + '%' : '—';
+    document.getElementById('stat-lead-enrol').textContent = leadEnrolRate;
+
+    // Page breakdown — extract page name from form name
+    const pageCounts = {};
+    contacts.forEach(c => {
+      const form = c.properties.first_conversion_event_name || 'Unknown';
+      // Extract page name — everything before the colon
+      const pageName = form.includes(':') ? form.split(':')[0].trim() : form;
+      // Shorten long names
+      const short = pageName.length > 50 ? pageName.substring(0, 50) + '…' : pageName;
+      pageCounts[short] = (pageCounts[short] || 0) + 1;
+    });
+
+    const sortedPages = Object.entries(pageCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    const maxLeads = sortedPages[0]?.[1] || 1;
+
+    if (pageBreakdown) {
+      if (sortedPages.length === 0) {
+        pageBreakdown.innerHTML = `<div class="empty-state" style="padding:16px;"><p>No leads found this month yet.</p></div>`;
+      } else {
+        pageBreakdown.innerHTML = `
+          <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);display:grid;grid-template-columns:1fr 60px 80px;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:4px;">
+            <span>Page / Form</span><span style="text-align:right;">Leads</span><span style="text-align:right;">Share</span>
+          </div>
+          ${sortedPages.map(([page, count]) => {
+            const pct = ((count / contacts.length) * 100).toFixed(0);
+            const barW = ((count / maxLeads) * 100).toFixed(0);
+            return `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
+              <div style="display:grid;grid-template-columns:1fr 60px 80px;gap:8px;align-items:center;margin-bottom:4px;">
+                <span style="font-size:12px;color:var(--text-dim);">${page}</span>
+                <span style="font-family:var(--font-mono);font-size:13px;color:var(--text);text-align:right;">${count}</span>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);text-align:right;">${pct}%</span>
+              </div>
+              <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
+                <div style="height:100%;width:${barW}%;background:var(--accent);border-radius:2px;"></div>
+              </div>
+            </div>`;
+          }).join('')}
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:8px;text-align:right;">
+            Showing top ${sortedPages.length} of ${Object.keys(pageCounts).length} pages · ${contacts.length} leads total this month
+          </div>`;
+      }
+    }
+
+    // Source breakdown
+    const sourceCounts = {};
+    const sourceLabels = {
+      'PAID_SEARCH': 'Paid Search (PPC)',
+      'ORGANIC_SEARCH': 'Organic Search',
+      'EMAIL_MARKETING': 'Email',
+      'DIRECT_TRAFFIC': 'Direct',
+      'PAID_SOCIAL': 'Paid Social',
+      'SOCIAL_MEDIA': 'Organic Social',
+      'REFERRALS': 'Referrals',
+      'OTHER_CAMPAIGNS': 'Other Campaigns',
+    };
+    contacts.forEach(c => {
+      const src = c.properties.hs_analytics_source || 'Unknown';
+      const label = sourceLabels[src] || src;
+      sourceCounts[label] = (sourceCounts[label] || 0) + 1;
+    });
+
+    const sortedSources = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1]);
+    const sourceColors = ['var(--blue)', 'var(--green)', 'var(--accent)', '#a78bfa', 'var(--red)', '#fb923c', 'var(--text-muted)'];
+
+    if (sourceBreakdown) {
+      sourceBreakdown.innerHTML = sortedSources.map(([src, count], i) => {
+        const pct = ((count / contacts.length) * 100).toFixed(0);
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:${sourceColors[i] || 'var(--text-muted)'};flex-shrink:0;"></div>
+            <span style="font-size:12px;color:var(--text-dim);">${src}</span>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-family:var(--font-mono);font-size:13px;color:var(--text);">${count}</span>
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-left:6px;">${pct}%</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // Cache the result with timestamp
+    state.hsCache = { data: contacts, total, fetchedAt: Date.now() };
+    saveState();
+
+  } catch(err) {
+    if (pageBreakdown) pageBreakdown.innerHTML = `<div style="color:var(--red);font-size:13px;padding:16px 0;">Failed to load HubSpot data: ${err.message}. Check your token in Settings.</div>`;
+  }
+}
+
+
 async function fetchTrend() {
   const apiKey = state.settings.apiKey;
   const display = document.getElementById('trend-display');
@@ -2362,6 +2599,7 @@ function loadSettings() {
   document.getElementById('s-ppc-target').value = state.settings.ppcTarget;
   document.getElementById('s-organic-target').value = state.settings.organicTarget;
   if (state.settings.apiKey) document.getElementById('s-api-key').value = '••••••••••••••••';
+  if (state.settings.hsToken) document.getElementById('s-hs-token').value = '••••••••••••••••';
 }
 
 function saveSettings() {
@@ -2373,7 +2611,16 @@ function saveSettings() {
   refreshScoreboard();
 }
 
-function saveApiKey() {
+function saveHsToken() {
+  const token = document.getElementById('s-hs-token').value;
+  if (!token || token.startsWith('•')) return;
+  state.settings.hsToken = token;
+  saveState();
+  showToast('HubSpot token saved.');
+  fetchHubSpotData();
+}
+
+
   const key = document.getElementById('s-api-key').value;
   if (!key || key.startsWith('•')) return;
   state.settings.apiKey = key;
