@@ -1849,8 +1849,8 @@ function refreshScoreboard() {
   } else {
     const pageBreakdown = document.getElementById('hs-page-breakdown');
     const sourceBreakdown = document.getElementById('hs-source-breakdown');
-    if (pageBreakdown) pageBreakdown.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">${state.settings.hsToken ? 'Click ↻ Refresh to load HubSpot data.' : 'Add your HubSpot token in <span style="color:var(--accent);cursor:pointer;" onclick="navigate(\'settings\')">Settings →</span>'}</div>`;
-    if (sourceBreakdown) sourceBreakdown.innerHTML = `<div style="color:var(--text-muted);font-size:12px;padding:8px 0;">${state.settings.hsToken ? 'Click Refresh to load.' : 'Add HubSpot token in Settings.'}</div>`;
+    if (pageBreakdown) pageBreakdown.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">Click ↻ Refresh to load HubSpot data.</div>`;
+    if (sourceBreakdown) sourceBreakdown.innerHTML = `<div style="color:var(--text-muted);font-size:12px;padding:8px 0;">Click Refresh to load.</div>`;
   }
 }
 
@@ -2198,31 +2198,22 @@ function renderHubSpotFromCache() {
 // HUBSPOT DATA
 // =====================
 async function fetchHubSpotData() {
-  const token = state.settings.hsToken;
   const pageBreakdown = document.getElementById('hs-page-breakdown');
   const sourceBreakdown = document.getElementById('hs-source-breakdown');
 
-  if (!token) {
-    if (pageBreakdown) pageBreakdown.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">Add your HubSpot Private App token in <span style="color:var(--accent);cursor:pointer;" onclick="navigate('settings')">Settings →</span></div>`;
-    if (sourceBreakdown) sourceBreakdown.innerHTML = `<div style="color:var(--text-muted);font-size:12px;padding:8px 0;">Add HubSpot token in Settings.</div>`;
-    return;
-  }
-
-  // Sanitise token — strip any non-ASCII chars that break HTTP headers
-  const cleanToken = token.replace(/[^\x00-\x7F]/g, '').trim();
+  if (pageBreakdown) pageBreakdown.innerHTML = `<div class="trend-loading"><div class="spinner"></div>Pulling from HubSpot...</div>`;
 
   try {
-    // Get start of current month and yesterday
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
     const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
     const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()).getTime();
     const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59).getTime();
 
-    // Fetch MTD contacts
-    const mtdRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
+    // Call our Vercel proxy — token lives server-side as env var
+    const mtdRes = await fetch('/api/hubspot', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cleanToken}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         filterGroups: [{ filters: [{ propertyName: 'first_conversion_date', operator: 'GTE', value: String(monthStart) }] }],
         properties: ['first_conversion_event_name', 'hs_analytics_source', 'first_conversion_date', 'hs_analytics_first_url'],
@@ -2345,7 +2336,7 @@ async function fetchHubSpotData() {
     saveState();
 
   } catch(err) {
-    if (pageBreakdown) pageBreakdown.innerHTML = `<div style="color:var(--red);font-size:13px;padding:16px 0;">Failed to load HubSpot data: ${err.message}. Check your token in Settings.</div>`;
+    if (pageBreakdown) pageBreakdown.innerHTML = `<div style="color:var(--red);font-size:13px;padding:16px 0;">Failed to load HubSpot data: ${err.message}. Make sure HUBSPOT_TOKEN is set in Vercel environment variables.</div>`;
   }
 }
 
