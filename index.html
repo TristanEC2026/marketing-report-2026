@@ -978,6 +978,10 @@
         <div>
           <div class="page-title" id="input-page-title">Log <em>Yesterday's</em> Numbers</div>
           <div class="page-subtitle" id="input-date-label">Your morning review. 2 minutes to feel in control.</div>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:10px;">
+            <label class="form-label" style="margin:0;white-space:nowrap;">Logging for date:</label>
+            <input class="form-input" type="date" id="log-date-picker" style="width:180px;" onchange="onDatePickerChange()">
+          </div>
         </div>
       </div>
 
@@ -1335,12 +1339,16 @@ function initDate() {
     document.getElementById('scoreboard-log-btn').textContent = `⊕ Log The Weekend's Numbers`;
     document.getElementById('nav-log-label').textContent = `Log The Weekend`;
     document.getElementById('weekend-banner').style.display = 'block';
+    // Set picker to Friday
+    const friday = new Date(now); friday.setDate(now.getDate() - 3);
+    document.getElementById('log-date-picker').value = friday.toISOString().split('T')[0];
   } else {
     document.getElementById('input-page-title').innerHTML = `Log <em>Yesterday's</em> Numbers`;
     document.getElementById('input-date-label').textContent = `Reviewing ${days[yesterday.getDay()]}, ${yesterday.getDate()} ${months[yesterday.getMonth()]} — your morning review.`;
     document.getElementById('scoreboard-log-btn').textContent = `⊕ Log Yesterday's Numbers`;
     document.getElementById('nav-log-label').textContent = `Log Yesterday`;
     document.getElementById('weekend-banner').style.display = 'none';
+    document.getElementById('log-date-picker').value = yesterday.toISOString().split('T')[0];
   }
   document.getElementById('input-date-label').textContent = `Reviewing ${days[yesterday.getDay()]}, ${yesterday.getDate()} ${months[yesterday.getMonth()]} — your morning review.`;
 
@@ -1500,25 +1508,39 @@ function refreshScoreboard() {
 // =====================
 // SAVE DAY
 // =====================
+function onDatePickerChange() {
+  const picked = document.getElementById('log-date-picker').value;
+  if (!picked) return;
+  const d = new Date(picked + 'T12:00:00');
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('input-page-title').innerHTML = `Log <em>${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}</em>`;
+  document.getElementById('input-date-label').textContent = `Logging data for ${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}.`;
+  document.getElementById('weekend-banner').style.display = 'none';
+}
+
+
 function saveDay() {
   const now = new Date();
   const isMonday = now.getDay() === 1;
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
+  const pickedDate = document.getElementById('log-date-picker').value;
 
-  // On Monday, log as the Friday date but mark as weekend block
-  let dateStr, label;
-  if (isMonday) {
+  let dateStr;
+  if (pickedDate) {
+    dateStr = pickedDate;
+  } else if (isMonday) {
     const friday = new Date(now);
     friday.setDate(now.getDate() - 3);
     dateStr = friday.toISOString().split('T')[0];
-    label = 'weekend';
   } else {
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
     dateStr = yesterday.toISOString().split('T')[0];
-    label = 'day';
   }
 
-  // Remove existing entry for today if re-logging
+  const isWeekendEntry = isMonday && !pickedDate;
+
+  // Remove existing entry for this date if re-logging
   state.days = state.days.filter(d => d.date !== dateStr);
 
   // Collect per-campaign pipeline data
@@ -1534,7 +1556,7 @@ function saveDay() {
 
   const entry = {
     date: dateStr,
-    isWeekend: isMonday,
+    isWeekend: isWeekendEntry,
     pipeline,
     ppcLeads: parseFloat(document.getElementById('in-ppc').value) || 0,
     metaLeads: parseFloat(document.getElementById('in-meta').value) || 0,
@@ -1551,7 +1573,11 @@ function saveDay() {
 
   state.days.push(entry);
   saveState();
-  showToast(isMonday ? 'Weekend logged. Scoreboard updated.' : 'Yesterday logged. Scoreboard updated.');
+
+  const d = new Date(dateStr + 'T12:00:00');
+  const days2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months2 = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  showToast(`${days2[d.getDay()]} ${d.getDate()} ${months2[d.getMonth()]} logged.`);
 
   // Clear inputs
   ['in-ppc','in-meta','in-organic','in-other-leads','in-ppc-spend','in-meta-spend','in-other-spend',
