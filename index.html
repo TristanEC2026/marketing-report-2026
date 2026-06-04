@@ -6,7 +6,7 @@
 <title>Marketing OS — Event Crowd</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #0e0f11;
@@ -1559,6 +1559,17 @@ function fmtFull(n) {
 // Chart instances — stored so we can destroy/recreate
 const charts = {};
 
+function chartJsReady() {
+  return typeof Chart !== 'undefined';
+}
+
+function chartPlaceholder(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  parent.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-family:var(--font-mono);font-size:11px;">Chart loading...</div>`;
+}
+
 function getChartDefaults() {
   return {
     responsive: true,
@@ -1739,6 +1750,12 @@ function refreshScoreboard() {
   }
 
   // ---- CHARTS ----
+  if (!chartJsReady()) {
+    ['chart-leads-daily','chart-leads-channel','chart-sessions-leads','chart-spend-daily','chart-revenue-daily'].forEach(chartPlaceholder);
+    // Retry after 2 seconds
+    setTimeout(() => refreshScoreboard(), 2000);
+    return;
+  }
   const labels = days.map(d => d.date.slice(5)); // MM-DD
   const ppcLeadsData = days.map(d => d.ppcLeads || 0);
   const metaLeadsData = days.map(d => d.metaLeads || 0);
