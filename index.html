@@ -2208,7 +2208,8 @@ async function fetchHubSpotData() {
     return;
   }
 
-  if (pageBreakdown) pageBreakdown.innerHTML = `<div class="trend-loading"><div class="spinner"></div>Pulling from HubSpot...</div>`;
+  // Sanitise token — strip any non-ASCII chars that break HTTP headers
+  const cleanToken = token.replace(/[^\x00-\x7F]/g, '').trim();
 
   try {
     // Get start of current month and yesterday
@@ -2221,7 +2222,7 @@ async function fetchHubSpotData() {
     // Fetch MTD contacts
     const mtdRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cleanToken}` },
       body: JSON.stringify({
         filterGroups: [{ filters: [{ propertyName: 'first_conversion_date', operator: 'GTE', value: String(monthStart) }] }],
         properties: ['first_conversion_event_name', 'hs_analytics_source', 'first_conversion_date', 'hs_analytics_first_url'],
@@ -2611,8 +2612,9 @@ function saveSettings() {
 }
 
 function saveHsToken() {
-  const token = document.getElementById('s-hs-token').value;
-  if (!token || token.startsWith('•')) return;
+  const raw = document.getElementById('s-hs-token').value;
+  if (!raw || raw.startsWith('•')) return;
+  const token = raw.replace(/[^\x00-\x7F]/g, '').trim();
   state.settings.hsToken = token;
   saveState();
   showToast('HubSpot token saved.');
