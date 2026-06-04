@@ -6,6 +6,7 @@
 <title>Marketing OS — Event Crowd</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #0e0f11;
@@ -718,6 +719,23 @@
   .history-table tr:last-child td { border-bottom: none; }
   .history-table tr:hover td { background: var(--surface2); }
 
+  /* FIELD HINTS */
+  .field-hint {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-top: 3px;
+    line-height: 1.5;
+    padding: 5px 8px;
+    background: var(--surface2);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 4px 4px 0;
+  }
+
   /* SCROLLBAR */
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -864,32 +882,166 @@
         <button class="btn btn-primary" onclick="navigate('input')" id="scoreboard-log-btn">⊕ Log Yesterday's Numbers</button>
       </div>
 
-      <!-- Revenue Target -->
-      <div class="card">
-        <div class="card-title">Revenue — Month to Date</div>
-        <div class="grid-4">
-          <div class="stat-tile">
-            <div class="label">MTD Revenue</div>
-            <div class="value" id="stat-mtd-revenue">£0</div>
-            <div class="delta delta-neutral" id="stat-mtd-pct">—% of target</div>
-          </div>
-          <div class="stat-tile">
-            <div class="label">Target</div>
-            <div class="value">£81k</div>
-            <div class="delta delta-neutral" id="stat-days-left">— days left</div>
-          </div>
-          <div class="stat-tile">
-            <div class="label">Daily Run Rate Needed</div>
-            <div class="value" id="stat-daily-needed">—</div>
-            <div class="delta delta-neutral">to hit target</div>
-          </div>
-          <div class="stat-tile">
-            <div class="label">Projected Month End</div>
-            <div class="value" id="stat-projected">—</div>
-            <div class="delta" id="stat-proj-delta">—</div>
+      <!-- COACHING NUDGE -->
+      <div id="coaching-nudge" style="display:none;" class="pace-banner on-track" style="margin-bottom:16px;">
+        <span class="pace-icon">💡</span>
+        <div class="pace-text">
+          <strong id="nudge-headline">—</strong>
+          <span id="nudge-detail">—</span>
+        </div>
+      </div>
+
+      <!-- SECTION 1: LEAD PERFORMANCE -->
+      <div class="section-divider">Lead Performance</div>
+
+      <!-- Lead stat tiles -->
+      <div class="grid-4" style="margin-bottom:16px;">
+        <div class="stat-tile">
+          <div class="label">Total Leads MTD</div>
+          <div class="value" id="stat-total-leads">0</div>
+          <div class="delta delta-neutral" id="stat-leads-delta">— vs last month</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">PPC Leads</div>
+          <div class="value" id="stat-ppc-leads">0</div>
+          <div class="delta delta-neutral" id="stat-ppc-pct">— of 600 target</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">Organic Leads</div>
+          <div class="value" id="stat-organic-leads">0</div>
+          <div class="delta delta-neutral" id="stat-org-pct">— of 150 target</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">Meta Leads</div>
+          <div class="value" id="stat-meta-leads">0</div>
+          <div class="delta delta-neutral">no target set</div>
+        </div>
+      </div>
+
+      <!-- Leads over time chart -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Daily Leads — This Month</div>
+        <div style="position:relative;height:200px;">
+          <canvas id="chart-leads-daily"></canvas>
+        </div>
+      </div>
+
+      <!-- Lead channel breakdown chart + CPL table -->
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="card">
+          <div class="card-title">Leads by Channel — MTD</div>
+          <div style="position:relative;height:200px;">
+            <canvas id="chart-leads-channel"></canvas>
           </div>
         </div>
-        <div class="progress-wrap mt-16">
+        <div class="card">
+          <div class="card-title">Cost per Lead by Channel</div>
+          <div id="cpl-table" style="margin-top:4px;"></div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: WEB & CONVERSION -->
+      <div class="section-divider">Web & Conversion</div>
+
+      <div class="grid-4" style="margin-bottom:16px;">
+        <div class="stat-tile">
+          <div class="label">Web Sessions MTD</div>
+          <div class="value" id="stat-sessions">—</div>
+          <div class="delta delta-neutral" id="stat-sessions-delta">—</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">Click → Lead Rate</div>
+          <div class="value" id="stat-click-lead">—</div>
+          <div class="delta delta-neutral" id="stat-click-lead-delta">sessions to leads</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">Lead → Enrolment Rate</div>
+          <div class="value" id="stat-lead-enrol">—</div>
+          <div class="delta delta-neutral">secondary metric</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">Avg Daily Sessions</div>
+          <div class="value" id="stat-avg-sessions">—</div>
+          <div class="delta delta-neutral">this month</div>
+        </div>
+      </div>
+
+      <!-- Web sessions chart -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Web Sessions vs Leads — Daily</div>
+        <div style="position:relative;height:200px;">
+          <canvas id="chart-sessions-leads"></canvas>
+        </div>
+      </div>
+
+      <!-- SECTION 3: AD SPEND -->
+      <div class="section-divider">Ad Spend</div>
+
+      <div class="grid-3" style="margin-bottom:16px;">
+        <div class="stat-tile">
+          <div class="label">Total Spend MTD</div>
+          <div class="value" id="stat-total-spend">£0</div>
+          <div class="delta delta-neutral" id="stat-spend-delta">—</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">PPC Spend</div>
+          <div class="value" id="stat-ppc-spend">£0</div>
+          <div class="delta delta-neutral" id="stat-ppc-cpl">CPL: —</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">Meta Spend</div>
+          <div class="value" id="stat-meta-spend">£0</div>
+          <div class="delta delta-neutral" id="stat-meta-cpl">CPL: —</div>
+        </div>
+      </div>
+
+      <!-- Spend over time chart -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Daily Ad Spend — This Month</div>
+        <div style="position:relative;height:180px;">
+          <canvas id="chart-spend-daily"></canvas>
+        </div>
+      </div>
+
+      <!-- SECTION 4: PIPELINE PULSE -->
+      <div class="section-divider">Pipeline Pulse</div>
+      <div class="card" style="margin-bottom:16px;">
+        <div id="scoreboard-pipeline-pulse">
+          <div class="empty-state" style="padding:20px;">
+            <p>No campaigns set up yet. <span style="color:var(--accent);cursor:pointer;" onclick="navigate('campaigns')">Add a campaign →</span></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 5: REVENUE (bottom) -->
+      <div class="section-divider">Revenue</div>
+
+      <div class="grid-4" style="margin-bottom:16px;">
+        <div class="stat-tile">
+          <div class="label">MTD Revenue</div>
+          <div class="value" id="stat-mtd-revenue">£0</div>
+          <div class="delta delta-neutral" id="stat-mtd-pct">—% of target</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">Target</div>
+          <div class="value">£81k</div>
+          <div class="delta delta-neutral" id="stat-days-left">— days left</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">Daily Run Rate Needed</div>
+          <div class="value" id="stat-daily-needed">—</div>
+          <div class="delta delta-neutral">to hit target</div>
+        </div>
+        <div class="stat-tile">
+          <div class="label">Projected Month End</div>
+          <div class="value" id="stat-projected">—</div>
+          <div class="delta" id="stat-proj-delta">—</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Revenue vs Target — MTD</div>
+        <div class="progress-wrap" style="margin-top:8px;">
           <div class="progress-label">
             <span>£0</span>
             <span id="prog-label-mid">£40.5k</span>
@@ -899,7 +1051,10 @@
             <div class="progress-fill-full fill-amber" id="revenue-progress" style="width:0%"></div>
           </div>
         </div>
-        <div class="pace-banner on-track" id="pace-banner">
+        <div style="position:relative;height:160px;margin-top:16px;">
+          <canvas id="chart-revenue-daily"></canvas>
+        </div>
+        <div class="pace-banner on-track" id="pace-banner" style="margin-top:16px;">
           <span class="pace-icon">📊</span>
           <div class="pace-text">
             <strong id="pace-headline">No data logged yet</strong>
@@ -908,69 +1063,8 @@
         </div>
       </div>
 
-      <!-- Lead Targets -->
-      <div class="card">
-        <div class="card-title">Leads — Month to Date</div>
-        <div class="grid-3">
-          <div>
-            <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px;">PPC Leads</div>
-            <div class="progress-wrap">
-              <div class="progress-label">
-                <span class="text-mono" id="ppc-leads-val">0</span>
-                <span class="text-muted">Target: 600</span>
-              </div>
-              <div class="progress-bar-full">
-                <div class="progress-fill-full fill-blue" id="ppc-leads-bar" style="width:0%"></div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px;">Meta Leads</div>
-            <div class="progress-wrap">
-              <div class="progress-label">
-                <span class="text-mono" id="meta-leads-val">0</span>
-                <span class="text-muted">No target set</span>
-              </div>
-              <div class="progress-bar-full">
-                <div class="progress-fill-full fill-amber" id="meta-leads-bar" style="width:0%"></div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px;">Organic Leads</div>
-            <div class="progress-wrap">
-              <div class="progress-label">
-                <span class="text-mono" id="organic-leads-val">0</span>
-                <span class="text-muted">Target: 150</span>
-              </div>
-              <div class="progress-bar-full">
-                <div class="progress-fill-full fill-green" id="organic-leads-bar" style="width:0%"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="mt-16">
-          <div class="channel-row header">
-            <div class="col">Channel</div>
-            <div class="col">Leads MTD</div>
-            <div class="col">CPL</div>
-            <div class="col">Sales MTD</div>
-            <div class="col">Conv %</div>
-          </div>
-          <div id="channel-table-body"></div>
-        </div>
-      </div>
-
-      <!-- Pipeline Pulse — campaign driven -->
-      <div class="card">
-        <div class="card-title">Pipeline Pulse</div>
-        <div id="scoreboard-pipeline-pulse">
-          <div class="empty-state" style="padding:20px;">
-            <p>No campaigns set up yet. <span style="color:var(--accent);cursor:pointer;" onclick="navigate('campaigns')">Add a campaign →</span></p>
-          </div>
-        </div>
-      </div>
     </div>
+
 
     <!-- ===== INPUT ===== -->
     <div class="page" id="page-input">
@@ -1028,6 +1122,24 @@
             <div class="form-group">
               <label class="form-label">Other Spend £</label>
               <input class="form-input" type="number" id="in-other-spend" placeholder="0.00" step="0.01">
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Web & Conversion</div>
+            <div class="form-group">
+              <label class="form-label">
+                Website Sessions
+                <span class="field-hint">GA4 → Reports → Realtime or Life cycle → Acquisition → Overview. Pick yesterday's date range. Use "Sessions" figure.</span>
+              </label>
+              <input class="form-input" type="number" id="in-sessions" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                Clicks (from PPC / Ads)
+                <span class="field-hint">Google Ads → Campaigns → select yesterday's date. Use "Clicks" column total. Or ask George for this number.</span>
+              </label>
+              <input class="form-input" type="number" id="in-clicks" placeholder="0" min="0">
             </div>
           </div>
         </div>
@@ -1371,7 +1483,8 @@ function calcMTD() {
     revenue: 0, sales: 0,
     ppcLeads: 0, metaLeads: 0, organicLeads: 0, otherLeads: 0,
     ppcSpend: 0, metaSpend: 0, otherSpend: 0,
-    waitlist: 0, forms: 0, emails: 0 // legacy — now per-campaign
+    sessions: 0, clicks: 0,
+    waitlist: 0, forms: 0, emails: 0
   };
   days.forEach(d => {
     totals.revenue += d.salesValue || 0;
@@ -1383,13 +1496,11 @@ function calcMTD() {
     totals.ppcSpend += d.ppcSpend || 0;
     totals.metaSpend += d.metaSpend || 0;
     totals.otherSpend += d.otherSpend || 0;
+    totals.sessions += d.sessions || 0;
+    totals.clicks += d.clicks || 0;
   });
-  // Latest pipeline from last entry
   if (days.length > 0) {
     const last = days[days.length - 1];
-    totals.waitlist = last.waitlist || 0;
-    totals.forms = last.forms || 0;
-    totals.emails = last.emails || 0;
     totals.pipelineNote = last.otherPipeline || '';
   }
   return totals;
@@ -1404,52 +1515,170 @@ function fmtFull(n) {
   return '£' + Math.round(n).toLocaleString();
 }
 
-// =====================
-// SCOREBOARD
-// =====================
+// Chart instances — stored so we can destroy/recreate
+const charts = {};
+
+function getChartDefaults() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1e2026',
+        borderColor: '#2a2d35',
+        borderWidth: 1,
+        titleColor: '#e8eaed',
+        bodyColor: '#9ca3af',
+        padding: 10,
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: '#2a2d35' },
+        ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 10 } }
+      },
+      y: {
+        grid: { color: '#2a2d35' },
+        ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 10 } },
+        beginAtZero: true
+      }
+    }
+  };
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
 function refreshScoreboard() {
   const mtd = calcMTD();
+  const days = getMTD().sort((a,b) => a.date.localeCompare(b.date));
   const target = state.settings.revenueTarget;
+  const ppcTarget = state.settings.ppcTarget;
+  const orgTarget = state.settings.organicTarget;
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
   const dayOfMonth = now.getDate();
   const daysLeft = daysInMonth - dayOfMonth;
   const daysPassed = dayOfMonth;
+  const totalLeads = mtd.ppcLeads + mtd.metaLeads + mtd.organicLeads + mtd.otherLeads;
+  const totalSpend = mtd.ppcSpend + mtd.metaSpend + mtd.otherSpend;
 
+  // ---- COACHING NUDGE ----
+  const nudge = document.getElementById('coaching-nudge');
+  const nudgeHeadline = document.getElementById('nudge-headline');
+  const nudgeDetail = document.getElementById('nudge-detail');
+  if (days.length >= 3) {
+    const ppcCpl = mtd.ppcLeads > 0 && mtd.ppcSpend > 0 ? mtd.ppcSpend / mtd.ppcLeads : null;
+    const ppcPace = (mtd.ppcLeads / daysPassed) * daysInMonth;
+    const orgPace = (mtd.organicLeads / daysPassed) * daysInMonth;
+    const clickLeadRate = mtd.clicks > 0 && totalLeads > 0 ? (totalLeads / mtd.clicks) * 100 : null;
+
+    let msg = null;
+    if (ppcCpl && ppcCpl > 30) {
+      msg = { h: '⚠ PPC Cost Per Lead is high', d: `CPL is £${ppcCpl.toFixed(2)} this month. Worth reviewing with George — check which campaigns are dragging it up.`, type: 'behind' };
+    } else if (ppcPace < ppcTarget * 0.7) {
+      msg = { h: '⚠ PPC leads behind pace', d: `On track for ~${Math.round(ppcPace)} PPC leads — well short of the 600 target. Consider increasing budget or reviewing ad copy with George.`, type: 'behind' };
+    } else if (orgPace > orgTarget * 1.3) {
+      msg = { h: '🌱 Organic is outperforming', d: `Organic leads on pace for ~${Math.round(orgPace)} vs 150 target. Worth doubling down — what's working? Monika should know.`, type: 'ahead' };
+    } else if (clickLeadRate && clickLeadRate < 5) {
+      msg = { h: '⚠ Low click-to-lead conversion', d: `Only ${clickLeadRate.toFixed(1)}% of clicks are converting to leads. Landing page or offer may need attention.`, type: 'behind' };
+    } else if (totalLeads > 0) {
+      msg = { h: '✓ Leads looking steady', d: `${totalLeads} leads logged so far this month across all channels. Keep the daily rhythm.`, type: 'on-track' };
+    }
+
+    if (msg) {
+      nudge.style.display = 'flex';
+      nudge.className = `pace-banner ${msg.type === 'behind' ? 'behind' : msg.type === 'ahead' ? 'ahead' : 'on-track'}`;
+      nudgeHeadline.textContent = msg.h;
+      nudgeDetail.textContent = msg.d;
+    }
+  }
+
+  // ---- LEAD STATS ----
+  document.getElementById('stat-total-leads').textContent = totalLeads;
+  document.getElementById('stat-ppc-leads').textContent = mtd.ppcLeads;
+  document.getElementById('stat-ppc-pct').textContent = `${Math.round((mtd.ppcLeads/ppcTarget)*100)}% of ${ppcTarget} target`;
+  document.getElementById('stat-organic-leads').textContent = mtd.organicLeads;
+  document.getElementById('stat-org-pct').textContent = `${Math.round((mtd.organicLeads/orgTarget)*100)}% of ${orgTarget} target`;
+  document.getElementById('stat-meta-leads').textContent = mtd.metaLeads;
+
+  // Lead delta (rough: compare to same days last month)
+  const leadDailyAvg = days.length > 0 ? totalLeads / days.length : 0;
+  document.getElementById('stat-leads-delta').textContent = `~${leadDailyAvg.toFixed(1)} per day avg`;
+
+  // ---- WEB & CONVERSION STATS ----
+  const avgSessions = days.length > 0 ? Math.round(mtd.sessions / days.length) : 0;
+  const clickLeadRate = mtd.clicks > 0 ? ((totalLeads / mtd.clicks) * 100).toFixed(1) + '%' : '—';
+  const leadEnrolRate = totalLeads > 0 && mtd.sales > 0 ? ((mtd.sales / totalLeads) * 100).toFixed(1) + '%' : '—';
+  document.getElementById('stat-sessions').textContent = mtd.sessions > 0 ? mtd.sessions.toLocaleString() : '—';
+  document.getElementById('stat-sessions-delta').textContent = avgSessions > 0 ? `~${avgSessions.toLocaleString()} avg/day` : 'log sessions daily';
+  document.getElementById('stat-click-lead').textContent = clickLeadRate;
+  document.getElementById('stat-click-lead-delta').textContent = `${mtd.clicks > 0 ? mtd.clicks.toLocaleString() + ' clicks' : 'log clicks daily'}`;
+  document.getElementById('stat-lead-enrol').textContent = leadEnrolRate;
+  document.getElementById('stat-avg-sessions').textContent = avgSessions > 0 ? avgSessions.toLocaleString() : '—';
+
+  // ---- SPEND STATS ----
+  document.getElementById('stat-total-spend').textContent = fmt(totalSpend);
+  document.getElementById('stat-ppc-spend').textContent = fmt(mtd.ppcSpend);
+  document.getElementById('stat-meta-spend').textContent = fmt(mtd.metaSpend);
+  const ppcCpl = mtd.ppcLeads > 0 && mtd.ppcSpend > 0 ? '£' + (mtd.ppcSpend/mtd.ppcLeads).toFixed(2) : '—';
+  const metaCpl = mtd.metaLeads > 0 && mtd.metaSpend > 0 ? '£' + (mtd.metaSpend/mtd.metaLeads).toFixed(2) : '—';
+  document.getElementById('stat-ppc-cpl').textContent = `CPL: ${ppcCpl}`;
+  document.getElementById('stat-meta-cpl').textContent = `CPL: ${metaCpl}`;
+  document.getElementById('stat-spend-delta').textContent = totalSpend > 0 && totalLeads > 0 ? `Blended CPL: £${(totalSpend/totalLeads).toFixed(2)}` : '—';
+
+  // ---- CPL TABLE ----
+  const cplTable = document.getElementById('cpl-table');
+  const channels = [
+    { name: 'PPC (Google)', leads: mtd.ppcLeads, spend: mtd.ppcSpend, color: 'var(--blue)' },
+    { name: 'Meta (FB/IG)', leads: mtd.metaLeads, spend: mtd.metaSpend, color: '#a78bfa' },
+    { name: 'Organic', leads: mtd.organicLeads, spend: 0, color: 'var(--green)' },
+    { name: 'Other', leads: mtd.otherLeads, spend: mtd.otherSpend, color: 'var(--accent)' },
+  ];
+  cplTable.innerHTML = channels.map(ch => {
+    const cpl = ch.leads > 0 && ch.spend > 0 ? '£' + (ch.spend/ch.leads).toFixed(2) : ch.spend === 0 && ch.leads > 0 ? '£0 (organic)' : '—';
+    const pct = totalLeads > 0 ? ((ch.leads/totalLeads)*100).toFixed(0) : 0;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:${ch.color};flex-shrink:0;"></div>
+        <span style="font-size:12px;color:var(--text-dim);">${ch.name}</span>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--text);">${cpl}</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">${ch.leads} leads (${pct}%)</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ---- REVENUE STATS ----
   const pct = Math.min(100, (mtd.revenue / target) * 100);
   const dailyAvg = daysPassed > 0 ? mtd.revenue / daysPassed : 0;
   const projected = dailyAvg * daysInMonth;
   const dailyNeeded = daysLeft > 0 ? (target - mtd.revenue) / daysLeft : 0;
 
-  // Stats
   document.getElementById('stat-mtd-revenue').textContent = fmt(mtd.revenue);
   document.getElementById('stat-mtd-pct').textContent = pct.toFixed(1) + '% of target';
   document.getElementById('stat-days-left').textContent = daysLeft + ' days left';
   document.getElementById('stat-daily-needed').textContent = dailyNeeded > 0 ? fmtFull(dailyNeeded) + '/day' : '✓ Done';
   document.getElementById('stat-projected').textContent = fmt(projected);
   document.getElementById('revenue-progress').style.width = pct + '%';
-
-  // Sidebar
   document.getElementById('sidebar-progress').style.width = pct + '%';
   document.getElementById('sidebar-current').textContent = fmt(mtd.revenue);
 
-  // Projected delta
   const projDelta = document.getElementById('stat-proj-delta');
   if (projected >= target) {
-    projDelta.textContent = '↑ On track';
-    projDelta.className = 'delta delta-up';
+    projDelta.textContent = '↑ On track'; projDelta.className = 'delta delta-up';
   } else {
-    const shortfall = target - projected;
-    projDelta.textContent = '↓ ' + fmt(shortfall) + ' short';
-    projDelta.className = 'delta delta-down';
+    projDelta.textContent = '↓ ' + fmt(target - projected) + ' short'; projDelta.className = 'delta delta-down';
   }
 
   // Pace banner
+  const daysLogged = days.length;
   const banner = document.getElementById('pace-banner');
   const headline = document.getElementById('pace-headline');
   const detail = document.getElementById('pace-detail');
-  const daysLogged = getMTD().length;
-
   if (daysLogged === 0) {
     banner.className = 'pace-banner on-track';
     headline.textContent = 'No data logged yet';
@@ -1457,51 +1686,120 @@ function refreshScoreboard() {
   } else if (projected >= target * 1.1) {
     banner.className = 'pace-banner ahead';
     headline.textContent = '🔥 Ahead of target';
-    detail.textContent = `At your current pace you\'ll hit ${fmt(projected)} — ${fmt(projected - target)} above target.`;
+    detail.textContent = `At your current pace you'll hit ${fmt(projected)} — ${fmt(projected - target)} above target.`;
   } else if (projected >= target * 0.9) {
     banner.className = 'pace-banner on-track';
     headline.textContent = '✓ On track';
-    detail.textContent = `Projecting ${fmt(projected)} by month end. Keep the current pace.`;
+    detail.textContent = `Projecting ${fmt(projected)} by month end.`;
   } else {
     banner.className = 'pace-banner behind';
     headline.textContent = '⚠ Behind pace';
-    detail.textContent = `At current pace: ${fmt(projected)}. You need ${fmtFull(dailyNeeded)}/day to catch up.`;
+    detail.textContent = `At current pace: ${fmt(projected)}. Need ${fmtFull(dailyNeeded)}/day to catch up.`;
   }
 
-  // Lead targets
-  const ppcTarget = state.settings.ppcTarget;
-  const orgTarget = state.settings.organicTarget;
-  document.getElementById('ppc-leads-val').textContent = mtd.ppcLeads;
-  document.getElementById('ppc-leads-bar').style.width = Math.min(100, (mtd.ppcLeads/ppcTarget)*100) + '%';
-  document.getElementById('meta-leads-val').textContent = mtd.metaLeads;
-  document.getElementById('meta-leads-bar').style.width = Math.min(100, (mtd.metaLeads/300)*100) + '%';
-  document.getElementById('organic-leads-val').textContent = mtd.organicLeads;
-  document.getElementById('organic-leads-bar').style.width = Math.min(100, (mtd.organicLeads/orgTarget)*100) + '%';
+  // ---- CHARTS ----
+  const labels = days.map(d => d.date.slice(5)); // MM-DD
+  const ppcLeadsData = days.map(d => d.ppcLeads || 0);
+  const metaLeadsData = days.map(d => d.metaLeads || 0);
+  const organicLeadsData = days.map(d => d.organicLeads || 0);
+  const otherLeadsData = days.map(d => d.otherLeads || 0);
+  const sessionsData = days.map(d => d.sessions || 0);
+  const ppcSpendData = days.map(d => d.ppcSpend || 0);
+  const metaSpendData = days.map(d => d.metaSpend || 0);
+  const revenueData = days.map(d => d.salesValue || 0);
 
-  // Channel table
-  const channelBody = document.getElementById('channel-table-body');
-  const channels = [
-    { name: 'PPC', tag: 'tag-ppc', leads: mtd.ppcLeads, spend: mtd.ppcSpend },
-    { name: 'Meta', tag: 'tag-meta', leads: mtd.metaLeads, spend: mtd.metaSpend },
-    { name: 'Organic', tag: 'tag-organic', leads: mtd.organicLeads, spend: 0 },
-    { name: 'Other', tag: 'tag-other', leads: mtd.otherLeads, spend: mtd.otherSpend },
-  ];
-  // distribute sales proportionally to leads
-  const totalLeads = mtd.ppcLeads + mtd.metaLeads + mtd.organicLeads + mtd.otherLeads;
-  channelBody.innerHTML = channels.map(ch => {
-    const cpl = ch.leads > 0 && ch.spend > 0 ? '£' + (ch.spend/ch.leads).toFixed(2) : ch.spend > 0 ? '—' : '—';
-    const chSales = totalLeads > 0 ? Math.round((ch.leads / totalLeads) * mtd.sales) : '—';
-    const conv = ch.leads > 0 && mtd.sales > 0 ? ((chSales/ch.leads)*100).toFixed(1)+'%' : '—';
-    return `<div class="channel-row data-row">
-      <div class="col"><span class="channel-tag ${ch.tag}">${ch.name}</span></div>
-      <div class="col">${ch.leads}</div>
-      <div class="col">${cpl}</div>
-      <div class="col">${chSales}</div>
-      <div class="col">${conv}</div>
-    </div>`;
-  }).join('');
+  // Daily leads target line (monthly target / days in month)
+  const dailyPpcTarget = Array(labels.length).fill(Math.round(ppcTarget / daysInMonth));
+  const dailyOrgTarget = Array(labels.length).fill(Math.round(orgTarget / daysInMonth));
 
-  // Pipeline pulse — campaign driven
+  // Chart 1: Daily leads stacked bar
+  destroyChart('leads-daily');
+  const ctx1 = document.getElementById('chart-leads-daily');
+  if (ctx1 && labels.length > 0) {
+    charts['leads-daily'] = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'PPC', data: ppcLeadsData, backgroundColor: 'rgba(96,165,250,0.7)', stack: 'leads' },
+          { label: 'Meta', data: metaLeadsData, backgroundColor: 'rgba(167,139,250,0.7)', stack: 'leads' },
+          { label: 'Organic', data: organicLeadsData, backgroundColor: 'rgba(52,211,153,0.7)', stack: 'leads' },
+          { label: 'Other', data: otherLeadsData, backgroundColor: 'rgba(240,180,41,0.7)', stack: 'leads' },
+          { label: 'PPC Target/day', data: dailyPpcTarget, type: 'line', borderColor: 'rgba(96,165,250,0.4)', borderDash: [4,4], pointRadius: 0, borderWidth: 1, fill: false },
+        ]
+      },
+      options: { ...getChartDefaults(), plugins: { ...getChartDefaults().plugins, legend: { display: true, labels: { color: '#6b7280', font: { family: 'DM Mono', size: 10 }, boxWidth: 10 } } } }
+    });
+  }
+
+  // Chart 2: Leads by channel doughnut
+  destroyChart('leads-channel');
+  const ctx2 = document.getElementById('chart-leads-channel');
+  if (ctx2) {
+    charts['leads-channel'] = new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: ['PPC', 'Meta', 'Organic', 'Other'],
+        datasets: [{ data: [mtd.ppcLeads, mtd.metaLeads, mtd.organicLeads, mtd.otherLeads], backgroundColor: ['rgba(96,165,250,0.8)','rgba(167,139,250,0.8)','rgba(52,211,153,0.8)','rgba(240,180,41,0.8)'], borderColor: '#16181c', borderWidth: 2 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#9ca3af', font: { family: 'DM Mono', size: 10 }, boxWidth: 10 } }, tooltip: { ...getChartDefaults().plugins.tooltip } }, cutout: '65%' }
+    });
+  }
+
+  // Chart 3: Sessions vs leads line
+  destroyChart('sessions-leads');
+  const ctx3 = document.getElementById('chart-sessions-leads');
+  if (ctx3 && labels.length > 0) {
+    const totalLeadsData = days.map(d => (d.ppcLeads||0)+(d.metaLeads||0)+(d.organicLeads||0)+(d.otherLeads||0));
+    charts['sessions-leads'] = new Chart(ctx3, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Sessions', data: sessionsData, borderColor: 'rgba(96,165,250,0.8)', backgroundColor: 'rgba(96,165,250,0.08)', fill: true, tension: 0.3, pointRadius: 3 },
+          { label: 'Leads', data: totalLeadsData, borderColor: 'rgba(52,211,153,0.8)', backgroundColor: 'rgba(52,211,153,0.08)', fill: true, tension: 0.3, pointRadius: 3, yAxisID: 'y2' },
+        ]
+      },
+      options: { ...getChartDefaults(), plugins: { ...getChartDefaults().plugins, legend: { display: true, labels: { color: '#6b7280', font: { family: 'DM Mono', size: 10 }, boxWidth: 10 } } }, scales: { ...getChartDefaults().scales, y2: { position: 'right', grid: { display: false }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 10 } }, beginAtZero: true } } }
+    });
+  }
+
+  // Chart 4: Daily spend
+  destroyChart('spend-daily');
+  const ctx4 = document.getElementById('chart-spend-daily');
+  if (ctx4 && labels.length > 0) {
+    charts['spend-daily'] = new Chart(ctx4, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'PPC', data: ppcSpendData, backgroundColor: 'rgba(96,165,250,0.7)', stack: 'spend' },
+          { label: 'Meta', data: metaSpendData, backgroundColor: 'rgba(167,139,250,0.7)', stack: 'spend' },
+        ]
+      },
+      options: { ...getChartDefaults(), plugins: { ...getChartDefaults().plugins, legend: { display: true, labels: { color: '#6b7280', font: { family: 'DM Mono', size: 10 }, boxWidth: 10 } } }, scales: { ...getChartDefaults().scales, y: { ...getChartDefaults().scales.y, ticks: { ...getChartDefaults().scales.y.ticks, callback: v => '£'+v } } } }
+    });
+  }
+
+  // Chart 5: Revenue daily bar with target line
+  destroyChart('revenue-daily');
+  const ctx5 = document.getElementById('chart-revenue-daily');
+  if (ctx5 && labels.length > 0) {
+    const dailyRevTarget = Array(labels.length).fill(Math.round(target / daysInMonth));
+    charts['revenue-daily'] = new Chart(ctx5, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Revenue', data: revenueData, backgroundColor: 'rgba(240,180,41,0.7)' },
+          { label: 'Daily target', data: dailyRevTarget, type: 'line', borderColor: 'rgba(240,180,41,0.3)', borderDash: [4,4], pointRadius: 0, borderWidth: 1, fill: false },
+        ]
+      },
+      options: { ...getChartDefaults(), plugins: { ...getChartDefaults().plugins, legend: { display: true, labels: { color: '#6b7280', font: { family: 'DM Mono', size: 10 }, boxWidth: 10 } } }, scales: { ...getChartDefaults().scales, y: { ...getChartDefaults().scales.y, ticks: { ...getChartDefaults().scales.y.ticks, callback: v => '£'+v } } } }
+    });
+  }
+
+  // Pipeline pulse
   renderScoreboardPipeline();
 }
 
@@ -1567,6 +1865,8 @@ function saveDay() {
     otherSpend: parseFloat(document.getElementById('in-other-spend').value) || 0,
     salesCount: parseInt(document.getElementById('in-sales-count').value) || 0,
     salesValue: parseFloat(document.getElementById('in-sales-value').value) || 0,
+    sessions: parseInt(document.getElementById('in-sessions').value) || 0,
+    clicks: parseInt(document.getElementById('in-clicks').value) || 0,
     otherPipeline: document.getElementById('in-other-pipeline').value || '',
     note: document.getElementById('in-note').value || ''
   };
@@ -1581,7 +1881,7 @@ function saveDay() {
 
   // Clear inputs
   ['in-ppc','in-meta','in-organic','in-other-leads','in-ppc-spend','in-meta-spend','in-other-spend',
-   'in-sales-count','in-sales-value','in-other-pipeline','in-note']
+   'in-sales-count','in-sales-value','in-sessions','in-clicks','in-other-pipeline','in-note']
     .forEach(id => document.getElementById(id).value = '');
 
   navigate('scoreboard');
