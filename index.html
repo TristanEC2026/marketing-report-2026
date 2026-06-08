@@ -750,6 +750,108 @@
     border-radius: 0 4px 4px 0;
   }
 
+  /* WEEKLY REPORT */
+  .weekly-section {
+    margin-bottom: 24px;
+  }
+  .weekly-section-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .weekly-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .weekly-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .weekly-kpi {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .weekly-kpi .wk-label { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 6px; }
+  .weekly-kpi .wk-value { font-family: var(--font-mono); font-size: 20px; color: var(--text); font-weight: 500; }
+  .weekly-kpi .wk-delta { font-family: var(--font-mono); font-size: 11px; margin-top: 4px; }
+  .wk-up { color: var(--green); }
+  .wk-down { color: var(--red); }
+  .wk-neutral { color: var(--text-muted); }
+
+  .insight-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .insight-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .insight-body .insight-headline { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .insight-body .insight-detail { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  .trend-item-weekly {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .trend-item-weekly:last-child { border-bottom: none; }
+  .trend-item-weekly .t-date { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .trend-item-weekly .t-headline { font-size: 13px; color: var(--text); margin-bottom: 3px; }
+  .trend-item-weekly .t-ec { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+  .channel-compare-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 80px 80px 80px;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+  .channel-compare-row.header { color: var(--text-muted); font-size: 10px; }
+  .channel-compare-row.data { color: var(--text-dim); }
+
+  /* PRINT STYLES */
+  @media print {
+    body { background: white !important; color: #1a1a1a !important; font-family: 'DM Sans', sans-serif; }
+    .sidebar, .page:not(#page-weekly), .page-header button { display: none !important; }
+    .main { margin-left: 0 !important; padding: 20px !important; max-width: 100% !important; }
+    #page-weekly { display: block !important; }
+    .page-header { border-bottom: 2px solid #e5e5e5; margin-bottom: 20px; }
+    .page-title { color: #1a1a1a !important; }
+    .page-title em { color: #c9831a !important; }
+    .page-subtitle { color: #666 !important; }
+    .weekly-kpi { background: #f9f9f9 !important; border: 1px solid #e5e5e5 !important; }
+    .weekly-kpi .wk-label { color: #888 !important; }
+    .weekly-kpi .wk-value { color: #1a1a1a !important; }
+    .insight-card { background: #f9f9f9 !important; border: 1px solid #e5e5e5 !important; }
+    .insight-body .insight-headline { color: #1a1a1a !important; }
+    .insight-body .insight-detail { color: #555 !important; }
+    .weekly-section-title { color: #888 !important; }
+    .weekly-section-title::after { background: #e5e5e5 !important; }
+    .trend-item-weekly .t-headline { color: #1a1a1a !important; }
+    .trend-item-weekly .t-date, .trend-item-weekly .t-ec { color: #666 !important; }
+    .trend-item-weekly { border-bottom-color: #e5e5e5 !important; }
+    .channel-compare-row { border-bottom-color: #e5e5e5 !important; color: #333 !important; }
+    .wk-up { color: #16a34a !important; }
+    .wk-down { color: #dc2626 !important; }
+    .wk-neutral { color: #888 !important; }
+    .weekly-kpi .wk-delta { }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
   /* SCROLLBAR */
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -864,6 +966,9 @@
       <div class="nav-section-label">Records</div>
       <div class="nav-item" data-page="history">
         <span class="icon">≡</span> History
+      </div>
+      <div class="nav-item" data-page="weekly">
+        <span class="icon">📋</span> Weekly Report
       </div>
       <div class="nav-item" data-page="settings">
         <span class="icon">⚙</span> Settings
@@ -1290,7 +1395,27 @@
       </div>
     </div>
 
-    <!-- ===== SETTINGS ===== -->
+    <!-- ===== WEEKLY REPORT ===== -->
+    <div class="page" id="page-weekly">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Weekly <em>Report</em></div>
+          <div class="page-subtitle" id="weekly-subtitle">Last week's performance — ready for your Monday meeting.</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-ghost" onclick="buildWeeklyReport()">↻ Refresh</button>
+          <button class="btn btn-primary" onclick="printWeeklyReport()">⬇ Export PDF</button>
+        </div>
+      </div>
+      <div id="weekly-report-content">
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <p>Click Refresh to generate last week's report.</p>
+        </div>
+      </div>
+    </div>
+
+
     <div class="page" id="page-settings">
       <div class="page-header">
         <div>
@@ -1476,6 +1601,7 @@ function navigate(page) {
   if (page === 'campaigns') renderCampaigns();
   if (page === 'trends' && !document.getElementById('trend-display').querySelector('.trend-headline')) fetchTrend();
   if (page === 'history') renderHistory();
+  if (page === 'weekly') buildWeeklyReport();
   if (page === 'settings') loadSettings();
 }
 
@@ -2581,6 +2707,215 @@ function renderScoreboardPipeline() {
   }
 }
 
+
+
+
+// =====================
+// WEEKLY REPORT
+// =====================
+function getWeekRange(weeksAgo) {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const daysToLastMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const lastMonday = new Date(now);
+  lastMonday.setDate(now.getDate() - daysToLastMonday - (weeksAgo * 7));
+  lastMonday.setHours(0,0,0,0);
+  const lastSunday = new Date(lastMonday);
+  lastSunday.setDate(lastMonday.getDate() + 6);
+  return { start: lastMonday, end: lastSunday };
+}
+
+function dateToStr(d) { return d.toISOString().split('T')[0]; }
+
+function getDaysInRange(start, end) {
+  const s = dateToStr(start);
+  const e = dateToStr(end);
+  return state.days.filter(d => d.date >= s && d.date <= e);
+}
+
+function sumDays(days) {
+  return days.reduce((t, d) => ({
+    revenue: t.revenue + (d.salesValue || 0),
+    sales: t.sales + (d.salesCount || 0),
+    ppcLeads: t.ppcLeads + (d.ppcLeads || 0),
+    metaLeads: t.metaLeads + (d.metaLeads || 0),
+    organicLeads: t.organicLeads + (d.organicLeads || 0),
+    otherLeads: t.otherLeads + (d.otherLeads || 0),
+    ppcSpend: t.ppcSpend + (d.ppcSpend || 0),
+    metaSpend: t.metaSpend + (d.metaSpend || 0),
+    sessions: t.sessions + (d.sessions || 0),
+    clicks: t.clicks + (d.clicks || 0),
+  }), { revenue:0, sales:0, ppcLeads:0, metaLeads:0, organicLeads:0, otherLeads:0, ppcSpend:0, metaSpend:0, sessions:0, clicks:0 });
+}
+
+function totalLeads(s) { return s.ppcLeads + s.metaLeads + s.organicLeads + s.otherLeads; }
+
+function fmtDelta(curr, prev, prefix='', suffix='', higherIsBetter=true) {
+  if (!prev) return `<span class="wk-neutral">— no prior data</span>`;
+  const diff = curr - prev;
+  const pct = prev > 0 ? Math.round((diff/prev)*100) : 0;
+  const isUp = diff > 0;
+  const isGood = higherIsBetter ? isUp : !isUp;
+  const cls = diff === 0 ? 'wk-neutral' : isGood ? 'wk-up' : 'wk-down';
+  const arrow = diff === 0 ? '→' : isUp ? '↑' : '↓';
+  const sign = diff > 0 ? '+' : '';
+  return `<span class="${cls}">${arrow} ${sign}${prefix}${Math.abs(diff).toLocaleString()}${suffix} (${pct > 0 ? '+':''}${pct}%) vs week before</span>`;
+}
+
+function buildWeeklyReport() {
+  const content = document.getElementById('weekly-report-content');
+  const subtitle = document.getElementById('weekly-subtitle');
+  if (!content) return;
+
+  const lastWeek = getWeekRange(1);
+  const prevWeek = getWeekRange(2);
+  const lastDays = getDaysInRange(lastWeek.start, lastWeek.end);
+  const prevDays = getDaysInRange(prevWeek.start, prevWeek.end);
+  const lw = sumDays(lastDays);
+  const pw = sumDays(prevDays);
+  const lwLeads = totalLeads(lw);
+  const pwLeads = totalLeads(pw);
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmtDate = d => `${d.getDate()} ${months[d.getMonth()]}`;
+  const weekLabel = `${fmtDate(lastWeek.start)} – ${fmtDate(lastWeek.end)}`;
+  const prevLabel = `${fmtDate(prevWeek.start)} – ${fmtDate(prevWeek.end)}`;
+
+  subtitle.textContent = `${weekLabel} · vs ${prevLabel}`;
+
+  if (lastDays.length === 0) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>No data logged for last week (${weekLabel}).<br>Make sure you're logging daily entries each morning.</p></div>`;
+    return;
+  }
+
+  // Monthly pace
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const dayOfMonth = now.getDate();
+  const mtdDays = getDaysInRange(new Date(now.getFullYear(), now.getMonth(), 1), now);
+  const mtdTotals = sumDays(mtdDays);
+  const dailyAvgRev = mtdDays.length > 0 ? mtdTotals.revenue / mtdDays.length : 0;
+  const projectedRev = dailyAvgRev * daysInMonth;
+  const target = state.settings.revenueTarget;
+  const onTrack = projectedRev >= target * 0.9;
+  const daysLeft = daysInMonth - dayOfMonth;
+  const paceMsg = mtdDays.length === 0
+    ? 'No MTD data logged yet.'
+    : onTrack
+      ? `Projecting ${fmt(projectedRev)} vs £${(target/1000).toFixed(0)}k target — on track.`
+      : `Projecting ${fmt(projectedRev)}. Need ${fmt((target - mtdTotals.revenue) / Math.max(daysLeft, 1))}/day over ${daysLeft} days remaining.`;
+
+  // CPL
+  const lwCpl = lw.ppcLeads > 0 && lw.ppcSpend > 0 ? lw.ppcSpend/lw.ppcLeads : null;
+  const pwCpl = pw.ppcLeads > 0 && pw.ppcSpend > 0 ? pw.ppcSpend/pw.ppcLeads : null;
+
+  // Insights
+  const insights = [];
+  const diff = lwLeads - pwLeads;
+  if (lwLeads > 0 || pwLeads > 0) {
+    insights.push({ icon: diff >= 0 ? '📈' : '📉', type: diff >= 0 ? 'good' : 'watch',
+      headline: diff >= 0 ? `Lead volume up ${diff} vs last week — ${lwLeads} total` : `Lead volume down ${Math.abs(diff)} vs last week — ${lwLeads} total`,
+      detail: `PPC: ${lw.ppcLeads} leads${pw.ppcLeads ? ` (was ${pw.ppcLeads})` : ''}. Organic: ${lw.organicLeads}${pw.organicLeads ? ` (was ${pw.organicLeads})` : ''}. Meta: ${lw.metaLeads}.`
+    });
+  }
+  if (lwCpl && pwCpl) {
+    const cplDiff = lwCpl - pwCpl;
+    if (Math.abs(cplDiff) > 1) {
+      insights.push({ icon: cplDiff < 0 ? '✅' : '⚠️', type: cplDiff < 0 ? 'good' : 'watch',
+        headline: cplDiff < 0 ? `PPC efficiency improved — CPL £${lwCpl.toFixed(2)} (was £${pwCpl.toFixed(2)})` : `PPC cost per lead increased — £${lwCpl.toFixed(2)} (was £${pwCpl.toFixed(2)})`,
+        detail: cplDiff > 0 ? `Worth reviewing with George — check which campaigns are dragging CPL up.` : `Strong PPC week. Spend: £${lw.ppcSpend.toFixed(0)} for ${lw.ppcLeads} leads.`
+      });
+    }
+  }
+  if (lw.organicLeads < 5) {
+    insights.push({ icon: '🌱', type: 'watch',
+      headline: `Organic leads low — ${lw.organicLeads} this week`,
+      detail: `Monthly target is ${state.settings.organicTarget} organic leads. Worth a check-in with Monika.`
+    });
+  } else if (lw.organicLeads > pw.organicLeads && pw.organicLeads > 0) {
+    insights.push({ icon: '🌱', type: 'good',
+      headline: `Organic leads up — ${lw.organicLeads} vs ${pw.organicLeads} last week`,
+      detail: `Good SEO momentum. Keep an eye on which pages are converting.`
+    });
+  }
+  insights.push({ icon: onTrack ? '✓' : '⚠', type: onTrack ? 'good' : 'watch',
+    headline: onTrack ? 'Monthly revenue on track' : 'Monthly revenue behind pace',
+    detail: `${paceMsg} MTD: ${fmt(mtdTotals.revenue)} of £${(target/1000).toFixed(0)}k — ${dayOfMonth} days in, ${daysLeft} to go.`
+  });
+  if (lw.sessions > 0 && pw.sessions > 0) {
+    const sessDiff = lw.sessions - pw.sessions;
+    if (Math.abs(sessDiff) > 50) {
+      insights.push({ icon: sessDiff > 0 ? '👥' : '👥', type: sessDiff > 0 ? 'good' : 'watch',
+        headline: `Web sessions ${sessDiff > 0 ? 'up' : 'down'} ${Math.abs(sessDiff).toLocaleString()} — ${lw.sessions.toLocaleString()} this week`,
+        detail: sessDiff < 0 ? `Traffic drop worth monitoring — could affect leads pipeline next week.` : `Good traffic week.`
+      });
+    }
+  }
+
+  // Trends from last week
+  const weekTrends = state.trends.filter(t => t.date >= dateToStr(lastWeek.start) && t.date <= dateToStr(lastWeek.end));
+
+  // Channel table
+  const channels = [
+    { name: 'PPC (Google)', lw: lw.ppcLeads, pw: pw.ppcLeads },
+    { name: 'Meta (FB/IG)', lw: lw.metaLeads, pw: pw.metaLeads },
+    { name: 'Organic', lw: lw.organicLeads, pw: pw.organicLeads },
+    { name: 'Other', lw: lw.otherLeads, pw: pw.otherLeads },
+  ];
+
+  const iColor = { good: 'var(--green-dim)', watch: 'var(--red-dim)', neutral: 'var(--accent-dim)' };
+  const iBorder = { good: 'rgba(52,211,153,0.2)', watch: 'rgba(248,113,113,0.2)', neutral: 'rgba(240,180,41,0.2)' };
+
+  content.innerHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:20px;">
+      <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:4px;">Weekly Performance Report · Event Crowd</div>
+      <div style="font-size:20px;font-family:var(--font-serif);color:var(--text);">${weekLabel}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Compared with ${prevLabel} · ${lastDays.length} day${lastDays.length!==1?'s':''} of data</div>
+    </div>
+
+    <div class="weekly-section">
+      <div class="weekly-section-title">Key Numbers</div>
+      <div class="weekly-kpi-grid">
+        <div class="weekly-kpi"><div class="wk-label">Total Leads</div><div class="wk-value">${lwLeads}</div><div class="wk-delta">${fmtDelta(lwLeads,pwLeads)}</div></div>
+        <div class="weekly-kpi"><div class="wk-label">PPC Leads</div><div class="wk-value">${lw.ppcLeads}</div><div class="wk-delta">${fmtDelta(lw.ppcLeads,pw.ppcLeads)}</div></div>
+        <div class="weekly-kpi"><div class="wk-label">Organic Leads</div><div class="wk-value">${lw.organicLeads}</div><div class="wk-delta">${fmtDelta(lw.organicLeads,pw.organicLeads)}</div></div>
+        <div class="weekly-kpi"><div class="wk-label">Revenue</div><div class="wk-value">${fmt(lw.revenue)}</div><div class="wk-delta">${fmtDelta(lw.revenue,pw.revenue,'£')}</div></div>
+        <div class="weekly-kpi"><div class="wk-label">PPC Spend</div><div class="wk-value">${fmt(lw.ppcSpend)}</div><div class="wk-delta">${fmtDelta(lw.ppcSpend,pw.ppcSpend,'£','',false)}</div></div>
+        <div class="weekly-kpi"><div class="wk-label">PPC Cost/Lead</div><div class="wk-value">${lwCpl?'£'+lwCpl.toFixed(2):'—'}</div><div class="wk-delta">${lwCpl&&pwCpl?fmtDelta(lwCpl,pwCpl,'£','',false):'<span class="wk-neutral">—</span>'}</div></div>
+        <div class="weekly-kpi"><div class="wk-label">Web Sessions</div><div class="wk-value">${lw.sessions>0?lw.sessions.toLocaleString():'—'}</div><div class="wk-delta">${lw.sessions&&pw.sessions?fmtDelta(lw.sessions,pw.sessions):'<span class="wk-neutral">— log sessions</span>'}</div></div>
+        <div class="weekly-kpi"><div class="wk-label">Sales Closed</div><div class="wk-value">${lw.sales}</div><div class="wk-delta">${fmtDelta(lw.sales,pw.sales)}</div></div>
+      </div>
+    </div>
+
+    <div class="weekly-section">
+      <div class="weekly-section-title">Key Insights & Things to Watch</div>
+      ${insights.map(i=>`<div class="insight-card" style="background:${iColor[i.type]||iColor.neutral};border-color:${iBorder[i.type]||iBorder.neutral};"><span class="insight-icon">${i.icon}</span><div class="insight-body"><div class="insight-headline">${i.headline}</div><div class="insight-detail">${i.detail}</div></div></div>`).join('')}
+    </div>
+
+    <div class="weekly-section">
+      <div class="weekly-section-title">Channel Breakdown — Week on Week</div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;">
+        <div class="channel-compare-row header"><span>Channel</span><span></span><span style="text-align:right;">${weekLabel}</span><span style="text-align:right;">${prevLabel}</span><span style="text-align:right;">Change</span></div>
+        ${channels.map(ch=>{const d=ch.lw-ch.pw;const cls=d>0?'wk-up':d<0?'wk-down':'wk-neutral';const sign=d>0?'+':'';return`<div class="channel-compare-row data"><span>${ch.name}</span><span></span><span style="text-align:right;color:var(--text);">${ch.lw}</span><span style="text-align:right;">${ch.pw}</span><span style="text-align:right;" class="${cls}">${sign}${d}</span></div>`;}).join('')}
+      </div>
+    </div>
+
+    <div class="weekly-section">
+      <div class="weekly-section-title">Marketing Trends — Last Week</div>
+      ${weekTrends.length===0
+        ? `<div style="color:var(--text-muted);font-size:13px;padding:8px 0;">No trend briefs saved for this week. Open the Trend Brief tab each morning to build this section.</div>`
+        : `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 16px;">${weekTrends.map(t=>`<div class="trend-item-weekly"><div class="t-date">${t.date}</div><div class="t-headline">${t.headline}</div>${t.ec_angle?`<div class="t-ec">Event Crowd: ${t.ec_angle}</div>`:''}</div>`).join('')}</div>`}
+    </div>
+
+    <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
+      Generated ${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · Marketing OS — Event Crowd
+    </div>`;
+}
+
+function printWeeklyReport() {
+  buildWeeklyReport();
+  setTimeout(() => window.print(), 300);
+}
 
 function renderHistory() {
   const display = document.getElementById('history-display');
